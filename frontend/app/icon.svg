@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="ph-gradient" x1="10" y1="8" x2="54" y2="56" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2563EB" />
+      <stop offset="1" stop-color="#7C3AED" />
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="48" height="48" rx="14" fill="url(#ph-gradient)" />
+  <path
+    d="M23 18h12.5c6.35 0 10.5 3.86 10.5 9.76S41.85 37.5 35.5 37.5H29V46h-6V18Zm6 5.25v9h6.18c3.16 0 4.82-1.59 4.82-4.49 0-2.91-1.66-4.76-4.82-4.76H29Z"
+    fill="#fff"
+  />
+  <circle cx="52" cy="14" r="5" fill="#FACC15" />
+</svg>
