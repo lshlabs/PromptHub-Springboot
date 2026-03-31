@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: prompthub-spring
+
+  profiles:
+    default: local
+
+  config:
+    import: optional:file:.env[.properties], optional:file:../.env[.properties]
+
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+server:
+  port: 8000
+
+app:
+  security:
+    jwt:
+      secret: prompthub-local-secret-change-me-prompthub-local-secret
+      access-expiration-ms: 3600000
+      refresh-expiration-ms: 1209600000
+    google:
+      client-id: ${BACKEND_GOOGLE_CLIENT_ID:${NEXT_PUBLIC_GOOGLE_CLIENT_ID:test-client-id}}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus

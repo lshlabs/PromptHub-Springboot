@@ -1,0 +1,14 @@
+spring:
+  config:
+    import: optional:file:.env[.properties] # .env 파일을 읽어오라는 설정
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update # 테이블 구조를 자동으로 맞춰줍니다.
+    show-sql: true
