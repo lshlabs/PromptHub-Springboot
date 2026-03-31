@@ -1,0 +1,53 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Node / Next.js
+node_modules/
+frontend/node_modules/
+.next/
+frontend/.next/
+out/
+frontend/out/
+*.tsbuildinfo
+frontend/tsconfig.tsbuildinfo
+
+# Java / Gradle
+backend/.gradle/
+backend/build/
+
+# Python tooling (optional local scripts)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+backend/venv/
+.pytest_cache/
+
+# Environments / secrets
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+frontend/.env.local
+backend/.env
+backend/.env.local
+
+# Logs / local diagnostics
+*.log
+bootlog.txt
+error.txt
+
+# Coverage
+coverage/
+*.coverage
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
