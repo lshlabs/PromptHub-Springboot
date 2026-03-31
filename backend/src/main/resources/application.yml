@@ -20,9 +20,9 @@ server:
 app:
   security:
     jwt:
-      secret: prompthub-local-secret-change-me-prompthub-local-secret
-      access-expiration-ms: 3600000
-      refresh-expiration-ms: 1209600000
+      secret: ${APP_JWT_SECRET:prompthub-local-secret-change-me-prompthub-local-secret}
+      access-expiration-ms: ${APP_JWT_ACCESS_EXPIRATION_MS:3600000}
+      refresh-expiration-ms: ${APP_JWT_REFRESH_EXPIRATION_MS:1209600000}
     google:
       client-id: ${BACKEND_GOOGLE_CLIENT_ID:${NEXT_PUBLIC_GOOGLE_CLIENT_ID:test-client-id}}
 

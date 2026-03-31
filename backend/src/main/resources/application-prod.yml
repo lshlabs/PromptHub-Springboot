@@ -1,0 +1,20 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      data-source-properties:
+        # Supabase Transaction Pooler(PgBouncer) safe settings
+        prepareThreshold: 0
+        preparedStatementCacheQueries: 0
+        preparedStatementCacheSizeMiB: 0
+        preferQueryMode: simple
+        reWriteBatchedInserts: true
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    open-in-view: false
