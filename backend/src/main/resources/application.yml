@@ -8,6 +8,16 @@ spring:
   config:
     import: optional:file:.env[.properties], optional:file:../.env[.properties]
 
+  datasource:
+    hikari:
+      data-source-properties:
+        # Supabase Transaction Pooler(PgBouncer) compatibility
+        prepareThreshold: 0
+        preparedStatementCacheQueries: 0
+        preparedStatementCacheSizeMiB: 0
+        preferQueryMode: simple
+        reWriteBatchedInserts: true
+
   jpa:
     show-sql: true
     properties:
