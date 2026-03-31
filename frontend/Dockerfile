@@ -1,6 +1,6 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
-COPY package*.json ./
+COPY frontend/package*.json ./
 RUN npm install --no-audit --no-fund
 
 FROM node:20-alpine AS builder
@@ -14,7 +14,7 @@ ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID
 ENV NEXT_PUBLIC_GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
 
 COPY --from=deps /app/node_modules ./node_modules
-COPY . ./
+COPY frontend/ ./
 RUN npm run build
 
 FROM node:20-alpine AS runner
