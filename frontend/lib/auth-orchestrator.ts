@@ -1,15 +1,15 @@
 import { getAccessToken, setTokens } from '@/lib/api'
 
 type SessionLike = {
-  djangoToken?: string | null
-  djangoUser?: unknown
+  backendToken?: string | null
+  backendUser?: unknown
 } | null
 
 export const resolveBootstrapToken = (session: SessionLike): string | null => {
   const localToken = getAccessToken()
   if (localToken) return localToken
 
-  const sessionToken = session?.djangoToken
+  const sessionToken = session?.backendToken
   if (sessionToken) {
     setTokens(sessionToken)
     return sessionToken

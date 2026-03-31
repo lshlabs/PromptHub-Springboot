@@ -135,11 +135,17 @@ export function CreatePostDialog({
 
   // 드롭다운에서 모델 선택: 기본 모델 메타 고정
   const handleModelSelect = (model: ModelSuggestion) => {
+    const modelData = allModels.find(item => item.id === model.id)
+    if (modelData?.name === '기타') {
+      // "기타" 선택은 검색 선택 모드와 충돌하므로 커스텀 입력 모드로 강제 전환
+      handleCustomModelToggle(true)
+      setCustomPlatformId(modelData.platform)
+      return
+    }
+
     setSelectedModel(model.name)
     setShowCustomModelInput(false)
     setCustomModel('')
-
-    const modelData = allModels.find(item => item.id === model.id)
     setSelectedModelData(modelData || null)
     if (modelData && modelData.name !== '기타') {
       setModelDetail(modelData.name)
@@ -175,14 +181,16 @@ export function CreatePostDialog({
     }
   }, [selectedCategory])
 
-  const preloadedModelSuggestions: ModelSuggestion[] = allModels.map(model => ({
-    id: model.id,
-    name: model.name,
-    platform: {
-      id: model.platform,
-      name: platforms.find(p => p.id === model.platform)?.name || model.platformName || 'Unknown',
-    },
-  }))
+  const preloadedModelSuggestions: ModelSuggestion[] = allModels
+    .filter(model => model.name !== '기타')
+    .map(model => ({
+      id: model.id,
+      name: model.name,
+      platform: {
+        id: model.platform,
+        name: platforms.find(p => p.id === model.platform)?.name || model.platformName || 'Unknown',
+      },
+    }))
 
   // 유효성 검사
   const validateStep = (step: number) => {
@@ -308,7 +316,7 @@ export function CreatePostDialog({
       if (onSuccess) onSuccess()
     } catch (err) {
       logger.error('게시글 저장 실패:', err)
-      const errorData = (err as any)?.response?.data
+      const errorData = (err as any)?.response?.data ?? (err as any)?.errors ?? null
       const fieldErrors = errorData?.errors
       if (fieldErrors && typeof fieldErrors === 'object') {
         const firstFieldError = Object.values(fieldErrors)[0]
@@ -320,7 +328,9 @@ export function CreatePostDialog({
         setError(firstMessage || errorData?.message || '입력값을 다시 확인해주세요.')
       } else {
         setError(
-          errorData?.message || (err instanceof Error ? err.message : '게시글 저장에 실패했습니다.'),
+          errorData?.message ||
+            (typeof (err as any)?.message === 'string' ? (err as any).message : null) ||
+            '게시글 저장에 실패했습니다.',
         )
       }
     } finally {

@@ -30,7 +30,7 @@ export default function TrendingHero() {
             className="text-orange-600 hover:underline">
             vellum.ai
           </a>{' '}
-          | 최종 업데이트: 2025년 12월
+          | 최종 업데이트: 2026년 2월
         </div>
       </div>
     </div>

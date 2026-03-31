@@ -66,8 +66,8 @@ export function useAuth(): UseAuthReturn {
       return
     }
 
-    // NextAuth 세션이 있고 Django 데이터가 있으면 세션 동기화를 우선하되, 사용자 데이터는 여전히 로드
-    if (sessionStatus === 'authenticated' && session?.djangoToken && session?.djangoUser) {
+    // NextAuth 세션이 있고 백엔드 데이터가 있으면 세션 동기화를 우선하되, 사용자 데이터는 여전히 로드
+    if (sessionStatus === 'authenticated' && session?.backendToken && session?.backendUser) {
       logger.debug('🔄 NextAuth 세션 존재, 세션 동기화 우선 - 사용자 데이터 로드 진행')
       // initAuth는 계속 진행하되, 토큰은 이미 설정된 것으로 간주
     }
@@ -85,8 +85,8 @@ export function useAuth(): UseAuthReturn {
         setAuthError(null)
 
         let tokenToUse = resolveBootstrapToken(session as any)
-        if (tokenToUse && !getAccessToken() && session?.djangoToken) {
-          logger.debug('🔍 initAuth - NextAuth 세션에서 Django 토큰 사용')
+        if (tokenToUse && !getAccessToken() && session?.backendToken) {
+          logger.debug('🔍 initAuth - NextAuth 세션에서 백엔드 토큰 사용')
           setToken(tokenToUse)
         }
 
@@ -100,7 +100,7 @@ export function useAuth(): UseAuthReturn {
             logger.debug('🔍 initAuth - 프로필 정보 가져오기 시도')
             const response = await authApi.getProfile()
             logger.debug('🔍 initAuth - 프로필 응답:', response)
-            const userData = extractProfileUser<BackendUserData>(response, session?.djangoUser as any)
+            const userData = extractProfileUser<BackendUserData>(response, session?.backendUser as any)
             if (userData) {
               setUser(userData)
               logger.debug('✅ initAuth - 사용자 정보 설정 완료:', userData)
@@ -135,7 +135,7 @@ export function useAuth(): UseAuthReturn {
     }
 
     initAuth()
-  }, [initAttempted, sessionStatus, session?.djangoToken, session?.djangoUser])
+  }, [initAttempted, sessionStatus, session?.backendToken, session?.backendUser])
 
   // 인증 만료 이벤트 리스너 추가
   useEffect(() => {
@@ -260,10 +260,10 @@ export function useAuth(): UseAuthReturn {
   const logout = async (options?: LogoutOptions): Promise<void> => {
     if (!options?.skipBackendRequest) {
       try {
-        // Django 백엔드 로그아웃 시도 (실패해도 계속 진행)
+        // 백엔드 로그아웃 시도 (실패해도 계속 진행)
         await authApi.logout()
       } catch (error) {
-        logger.error('Django 로그아웃 요청 오류 (무시하고 계속 진행):', error)
+        logger.error('백엔드 로그아웃 요청 오류 (무시하고 계속 진행):', error)
       }
     }
 
@@ -323,26 +323,26 @@ export function useAuth(): UseAuthReturn {
   }
 
   /**
-   * Django에서 받은 토큰과 사용자 정보를 직접 설정
+   * 백엔드에서 받은 토큰과 사용자 정보를 직접 설정
    * Google 로그인 등에서 사용
    */
-  const setAuthData = (djangoToken: string, userData: BackendUserData): void => {
+  const setAuthData = (backendToken: string, userData: BackendUserData): void => {
     // 이미 같은 토큰과 사용자가 설정되어 있으면 중복 설정 방지
-    if (token === djangoToken && user?.email === userData?.email) {
+    if (token === backendToken && user?.email === userData?.email) {
       logger.debug('🔄 setAuthData - 이미 같은 데이터가 설정되어 있음, 스킵')
       return
     }
 
     logger.debug('🔑 setAuthData 호출:', {
-      token: djangoToken?.substring(0, 10) + '...',
+      token: backendToken?.substring(0, 10) + '...',
       user: userData?.email,
     })
 
     // 토큰을 localStorage에 저장
-    setTokens(djangoToken)
+    setTokens(backendToken)
 
     // 상태 업데이트
-    setToken(djangoToken)
+    setToken(backendToken)
     setUser(userData)
 
     // 저장 확인
@@ -350,8 +350,8 @@ export function useAuth(): UseAuthReturn {
       const storedToken = getAccessToken()
       logger.debug('✅ 인증 데이터 설정 완료 - 저장 확인:', {
         stored: storedToken?.substring(0, 10) + '...',
-        state: djangoToken?.substring(0, 10) + '...',
-        match: storedToken === djangoToken,
+        state: backendToken?.substring(0, 10) + '...',
+        match: storedToken === backendToken,
       })
     }, 50)
   }

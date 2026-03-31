@@ -43,34 +43,34 @@ export function useSessionSync() {
       return
     }
 
-    // 인증된 세션이 있고, Django 데이터가 있으며, 아직 로컬 상태가 동기화되지 않은 경우
+    // 인증된 세션이 있고, 백엔드 데이터가 있으며, 아직 로컬 상태가 동기화되지 않은 경우
     if (
       status === 'authenticated' &&
-      session?.djangoToken &&
-      session?.djangoUser &&
-      (!isAuthenticated || user?.email !== session.djangoUser?.email)
+      session?.backendToken &&
+      session?.backendUser &&
+      (!isAuthenticated || user?.email !== session.backendUser?.email)
     ) {
       const syncSession = async () => {
         try {
-          logger.debug('🔄 세션 동기화 시작:', session.djangoUser?.email)
+          logger.debug('🔄 세션 동기화 시작:', session.backendUser?.email)
           setSyncError(null)
 
-          const djangoToken = session.djangoToken
-          if (!djangoToken) {
-            throw new Error('Django 토큰 또는 사용자 데이터 누락')
+          const backendToken = session.backendToken
+          if (!backendToken) {
+            throw new Error('백엔드 토큰 또는 사용자 데이터 누락')
           }
 
           try {
             const profileData = await fetchJson<UserProfileEnvelope>('/api/auth/profile/', {
-              headers: tokenAuthHeaders(djangoToken),
+              headers: tokenAuthHeaders(backendToken),
             })
-            const latestUserData = profileData.user || session.djangoUser
+            const latestUserData = profileData.user || session.backendUser
 
-            logger.debug('✅ Django 토큰 유효성 확인 완료, 최신 프로필로 동기화')
+            logger.debug('✅ 백엔드 토큰 유효성 확인 완료, 최신 프로필로 동기화')
 
-            // TypeScript 타입 안전성을 위해 djangoToken 존재 확인
+            // TypeScript 타입 안전성을 위해 backendToken 존재 확인
             if (latestUserData) {
-              setAuthData(djangoToken, latestUserData)
+              setAuthData(backendToken, latestUserData)
 
               // 동기화 완료 표시 (sessionStorage에 저장)
               if (latestUserData.email) {
@@ -80,12 +80,12 @@ export function useSessionSync() {
 
               logger.debug('🎉 세션 동기화 완료 - 사용자:', latestUserData.email)
             } else {
-              throw new Error('Django 토큰 또는 사용자 데이터 누락')
+              throw new Error('백엔드 토큰 또는 사용자 데이터 누락')
             }
           } catch (error) {
             if (error instanceof HttpRequestError) {
-              logger.debug(`❌ Django 토큰이 무효함 (상태: ${error.status})`, error.payload)
-              throw new Error('Django 토큰이 무효합니다.')
+              logger.debug(`❌ 백엔드 토큰이 무효함 (상태: ${error.status})`, error.payload)
+              throw new Error('백엔드 토큰이 무효합니다.')
             }
             throw error
           }
@@ -108,8 +108,8 @@ export function useSessionSync() {
     }
   }, [
     status,
-    session?.djangoToken,
-    session?.djangoUser?.email,
+    session?.backendToken,
+    session?.backendUser?.email,
     syncAttempted,
     isAuthenticated,
     user?.email,

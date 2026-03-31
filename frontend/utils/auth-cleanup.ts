@@ -17,7 +17,7 @@ export async function clearAllAuthData(): Promise<{ ok: true } | { ok: false; me
 
     // 2. 로컬 스토리지 삭제
     if (typeof window !== 'undefined') {
-      // Django 토큰 관련
+      // 백엔드 토큰 관련
       localStorage.removeItem('access_token')
       localStorage.removeItem('refresh_token')
       localStorage.removeItem('token')

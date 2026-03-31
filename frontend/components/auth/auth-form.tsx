@@ -24,6 +24,29 @@ interface AuthFormProps {
   onSuccess?: () => void
 }
 
+const GOOGLE_SIGNIN_ERROR_MESSAGES: Record<string, string> = {
+  BACKEND_AUTH_MISSING_ID_TOKEN:
+    'Google 인증 토큰을 받지 못했습니다. 브라우저를 새로고침한 뒤 다시 시도해주세요.',
+  BACKEND_AUTH_BAD_REQUEST:
+    'Google 인증 정보가 유효하지 않습니다. 계정을 다시 선택해 로그인해주세요.',
+  BACKEND_AUTH_UNAUTHORIZED:
+    'Google 계정 인증이 만료되었거나 권한이 거부되었습니다. 다시 로그인해주세요.',
+  BACKEND_AUTH_SERVER_ERROR:
+    '로그인 서버에 일시적인 문제가 있습니다. 잠시 후 다시 시도해주세요.',
+  BACKEND_AUTH_FAILED: 'Google 로그인 처리에 실패했습니다. 잠시 후 다시 시도해주세요.',
+  BACKEND_AUTH_UNKNOWN_ERROR:
+    'Google 로그인 중 알 수 없는 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+  BACKEND_AUTH_TOKEN_MISSING:
+    '로그인 세션 생성에 실패했습니다. 브라우저를 새로고침한 뒤 다시 시도해주세요.',
+  BACKEND_AUTH_INVALID_PAYLOAD:
+    '로그인 응답 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+}
+
+const getGoogleSignInErrorMessage = (errorCode: string): string | null => {
+  if (!errorCode) return null
+  return GOOGLE_SIGNIN_ERROR_MESSAGES[errorCode] ?? null
+}
+
 function GoogleBrandIcon({ className = 'h-4 w-4' }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
@@ -114,11 +137,18 @@ export default function AuthForm({ defaultTab = 'login', onSuccess }: AuthFormPr
       })
 
       if (result?.error) {
+        const mappedMessage = getGoogleSignInErrorMessage(result.error)
         setError(
-          getDomainErrorMessage(result.error, 'Google 인증이 중단되었습니다. 팝업 설정을 확인하고 다시 시도해주세요.', {
-            unauthorized: 'Google 계정 인증이 만료되었습니다. Google 계정 선택부터 다시 진행해주세요.',
-            forbidden: 'Google 계정 접근 권한이 거부되었습니다. 권한 허용 후 다시 시도해주세요.',
-          }),
+          mappedMessage ??
+            getDomainErrorMessage(
+              result.error,
+              'Google 인증이 중단되었습니다. 팝업 설정을 확인하고 다시 시도해주세요.',
+              {
+                unauthorized:
+                  'Google 계정 인증이 만료되었습니다. Google 계정 선택부터 다시 진행해주세요.',
+                forbidden: 'Google 계정 접근 권한이 거부되었습니다. 권한 허용 후 다시 시도해주세요.',
+              },
+            ),
         )
         setIsLoading(false)
         return

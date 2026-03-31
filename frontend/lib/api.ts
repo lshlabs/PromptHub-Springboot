@@ -1,5 +1,5 @@
 // ===========================================
-// API 클라이언트 - Django 백엔드와의 통신을 위한 모든 함수들
+// API 클라이언트 - Spring Boot 백엔드 통신을 위한 모든 함수들
 // ===========================================
 
 import axios, { AxiosInstance, AxiosError, AxiosResponse } from 'axios'
@@ -292,7 +292,7 @@ export const authApi = {
 
   /** TokenAuth 환경: 토큰 갱신 미지원 */
   refreshToken: async (_refreshToken: string): Promise<TokenRefreshResponse> => {
-    throw new Error('Django Token Authentication은 토큰 갱신을 지원하지 않습니다.')
+    throw new Error('Backend Token Auth 호환 레이어에서는 토큰 갱신 미지원')
   },
 
   /** 사용자 프로필 조회 */

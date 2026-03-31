@@ -91,7 +91,7 @@ export default function HomePage() {
       {/* 하단 간결 카피 */}
       <div className="mx-auto max-w-7xl px-6 pb-20">
         <div className="mx-auto max-w-3xl text-center text-xs text-zinc-500 dark:text-zinc-400">
-          오픈소스 • Next.js + Django REST • 데이터 중심 커뮤니티
+          오픈소스 • Next.js + Spring Boot • 데이터 중심 커뮤니티
         </div>
       </div>
     </main>

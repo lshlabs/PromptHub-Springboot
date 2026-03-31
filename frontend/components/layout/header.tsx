@@ -14,22 +14,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import {
-  Menu,
-  LogIn,
-  Users,
-  TrendingUp,
-  Star,
-  Bookmark,
-  Chrome,
-  Sun,
-  Moon,
-  Monitor,
-  Globe,
-  ChevronDown,
-  LogOut,
-  User,
-} from 'lucide-react'
+import { Menu, LogIn, Users, TrendingUp, Star, Bookmark, Chrome, LogOut, User } from 'lucide-react'
 import { default as AuthForm } from '@/components/auth/auth-form'
 import { useAuthContext } from '@/components/layout/auth-provider'
 import { useToast } from '@/hooks/use-toast'
@@ -39,8 +24,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
@@ -53,10 +36,6 @@ interface NavigationItem {
   badge?: string
   requiresAuth?: boolean
 }
-
-type Theme = 'light' | 'dark' | 'system'
-
-type Language = '한국어' | 'English' | '日本語' | '中文'
 
 const NAVIGATION_ITEMS: NavigationItem[] = [
   {
@@ -83,22 +62,12 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
   },
 ] as const
 
-const SUPPORTED_LANGUAGES: Language[] = ['한국어', 'English', '日本語', '中文'] as const
-
-const THEME_OPTIONS: { value: Theme; icon: React.ComponentType<{ className?: string }> }[] = [
-  { value: 'light', icon: Sun },
-  { value: 'dark', icon: Moon },
-  { value: 'system', icon: Monitor },
-] as const
-
 export default function Header(): JSX.Element {
   const { user, isAuthenticated, logout, isLoading } = useAuthContext()
   const { toast } = useToast()
 
   const [isAuthOpen, setIsAuthOpen] = React.useState<boolean>(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState<boolean>(false)
-  const [theme, setTheme] = React.useState<Theme>('system')
-  const [language, setLanguage] = React.useState<Language>('한국어')
 
   const pathname = usePathname()
   const router = useRouter()
@@ -113,12 +82,6 @@ export default function Header(): JSX.Element {
       gradient: getAvatarGradientStyle(user?.avatar_color1, user?.avatar_color2),
     }
   }
-
-  const getThemeIcon = () => {
-    const themeOption = THEME_OPTIONS.find(option => option.value === theme)
-    return themeOption?.icon || Monitor
-  }
-  const ThemeIcon = getThemeIcon()
 
   const isActive = React.useCallback(
     (href: string): boolean => {
@@ -156,29 +119,6 @@ export default function Header(): JSX.Element {
       router.push('/')
     }
   }, [pathname, router])
-
-  const handleThemeChange = React.useCallback((newTheme: Theme): void => {
-    setTheme(newTheme)
-    localStorage.setItem('theme', newTheme)
-  }, [])
-
-  const handleLanguageChange = React.useCallback((newLanguage: Language): void => {
-    setLanguage(newLanguage)
-    localStorage.setItem('language', newLanguage)
-  }, [])
-
-  React.useEffect(() => {
-    if (typeof window === 'undefined') return
-
-    const savedTheme = localStorage.getItem('theme') as Theme
-    if (savedTheme && THEME_OPTIONS.some(option => option.value === savedTheme)) {
-      setTheme(savedTheme)
-    }
-    const savedLanguage = localStorage.getItem('language') as Language
-    if (savedLanguage && SUPPORTED_LANGUAGES.includes(savedLanguage)) {
-      setLanguage(savedLanguage)
-    }
-  }, []) // 빈 의존성 배열로 마운트 시에만 실행
 
   const renderUserAvatar = React.useCallback(
     (size: string = 'w-8 h-8'): JSX.Element => {
@@ -353,7 +293,7 @@ export default function Header(): JSX.Element {
                       {renderUserAvatar()}
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-72 p-0" align="end" sideOffset={8}>
+                  <DropdownMenuContent className="w-50 p-0" align="end" sideOffset={8}>
                     {/* 사용자 정보 헤더 */}
                     <div className="border-b px-4 py-3">
                       <p className="text-sm font-medium text-gray-900">
@@ -362,7 +302,7 @@ export default function Header(): JSX.Element {
                     </div>
 
                     {/* 주요 메뉴 항목 */}
-                    <div className="py-2">
+                    <div className="py-1">
                       <DropdownMenuItem asChild>
                         <Link
                           href="/profile"
@@ -379,75 +319,6 @@ export default function Header(): JSX.Element {
                           <span>북마크</span>
                         </Link>
                       </DropdownMenuItem>
-                    </div>
-
-                    <DropdownMenuSeparator />
-
-                    {/* 환경설정 섹션 */}
-                    <div className="py-2">
-                      <DropdownMenuLabel className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                        환경설정
-                      </DropdownMenuLabel>
-
-                      {/* 테마 설정 */}
-                      <div className="px-4 py-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <ThemeIcon className="h-4 w-4" aria-hidden="true" />
-                            <span className="text-sm">테마</span>
-                          </div>
-                          <div
-                            className="flex items-center rounded-lg bg-gray-100 p-1"
-                            role="radiogroup"
-                            aria-label="테마 선택">
-                            {THEME_OPTIONS.map(({ value, icon: Icon }) => (
-                              <Button
-                                key={value}
-                                variant={theme === value ? 'default' : 'ghost'}
-                                size="sm"
-                                className="h-6 px-2 text-xs"
-                                onClick={() => handleThemeChange(value)}
-                                role="radio"
-                                aria-checked={theme === value}
-                                aria-label={`${value} 테마`}>
-                                <Icon className="h-3 w-3" aria-hidden="true" />
-                              </Button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* 언어 설정 */}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <div className="flex cursor-pointer items-center justify-between px-4 py-2 hover:bg-gray-50">
-                            <div className="flex items-center gap-3">
-                              <Globe className="h-4 w-4" aria-hidden="true" />
-                              <span className="text-sm">언어</span>
-                            </div>
-                            <div className="flex items-center gap-1 text-sm text-gray-600">
-                              <span>{language}</span>
-                              <ChevronDown className="h-3 w-3" aria-hidden="true" />
-                            </div>
-                          </div>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent side="bottom" align="end">
-                          {SUPPORTED_LANGUAGES.map(lang => (
-                            <DropdownMenuItem
-                              key={lang}
-                              onClick={() => handleLanguageChange(lang)}
-                              className={language === lang ? 'bg-blue-50 text-blue-700' : ''}>
-                              {lang}
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-
-                    <DropdownMenuSeparator />
-
-                    {/* 로그아웃 */}
-                    <div className="py-2">
                       <DropdownMenuItem
                         className="flex cursor-pointer items-center gap-3 px-4 py-2 text-red-600 focus:text-red-600"
                         onClick={handleLogout}>
