@@ -6,8 +6,7 @@ WORKDIR /app
 # package.json만 먼저 복사해서 캐싱 활용
 COPY frontend/package*.json ./
 
-# 버전 고정을 위해 npm install 대신 npm ci를 사용
-RUN npm ci
+RUN npm install --no-audit --no-fund
 
 # 2단계: 빌드 (Builder)
 FROM node:20-alpine AS builder
