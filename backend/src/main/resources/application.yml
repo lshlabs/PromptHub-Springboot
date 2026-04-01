@@ -35,6 +35,11 @@ app:
       refresh-expiration-ms: ${APP_JWT_REFRESH_EXPIRATION_MS:1209600000}
     google:
       client-id: ${BACKEND_GOOGLE_CLIENT_ID:${NEXT_PUBLIC_GOOGLE_CLIENT_ID:test-client-id}}
+  cloudinary:
+    cloud-name: ${CLOUDINARY_CLOUD_NAME:}
+    api-key: ${CLOUDINARY_API_KEY:}
+    api-secret: ${CLOUDINARY_API_SECRET:}
+    profile-folder: ${CLOUDINARY_PROFILE_FOLDER:prompthub/profile}
 
 management:
   endpoints:
