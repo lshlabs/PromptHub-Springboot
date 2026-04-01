@@ -24,8 +24,29 @@ public class AppUser {
     @Column(nullable = false, length = 255)
     private String password;
 
+    @Column(name = "last_login")
+    private Instant lastLogin;
+
+    @Column(name = "is_superuser", nullable = false)
+    private boolean superuser = false;
+
     @Column(nullable = false, unique = true, length = 50)
     private String username;
+
+    @Column(name = "first_name", length = 150)
+    private String firstName;
+
+    @Column(name = "last_name", length = 150)
+    private String lastName;
+
+    @Column(name = "is_staff", nullable = false)
+    private boolean staff = false;
+
+    @Column(name = "is_active", nullable = false)
+    private boolean active = true;
+
+    @Column(name = "date_joined", nullable = false)
+    private Instant dateJoined = Instant.now();
 
     @Column(length = 1000)
     private String bio;
@@ -50,5 +71,15 @@ public class AppUser {
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt = Instant.now();
+
+    @PrePersist
+    void prePersist() {
+        if (createdAt == null) {
+            createdAt = Instant.now();
+        }
+        if (dateJoined == null) {
+            dateJoined = Instant.now();
+        }
+    }
 
 }
