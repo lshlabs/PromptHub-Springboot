@@ -1,6 +1,7 @@
 package com.lshlabs.prompthubspring.user;
 
 import com.lshlabs.prompthubspring.common.ApiException;
+import com.lshlabs.prompthubspring.common.CloudinaryService;
 import com.lshlabs.prompthubspring.auth.AuthService;
 import com.lshlabs.prompthubspring.auth.AuthTokenRepository;
 import com.lshlabs.prompthubspring.post.PostInteractionRepository;
@@ -41,21 +42,16 @@ class UserServiceTest {
     private PostRepository postRepository;
     @Mock
     private PostInteractionRepository postInteractionRepository;
+    @Mock
+    private CloudinaryService cloudinaryService;
 
     private UserService userService;
 
     @BeforeEach
     void setUp() {
-        userService = new UserService(
-                userRepository,
-                userSettingsRepository,
-                userSessionRepository,
-                authTokenRepository,
-                authService,
-                passwordEncoder,
-                postRepository,
-                postInteractionRepository
-        );
+        userService = new UserService(userRepository, userSettingsRepository, userSessionRepository,
+                authTokenRepository, authService, passwordEncoder, postRepository, postInteractionRepository,
+                cloudinaryService);
     }
 
     @Test
@@ -90,10 +86,8 @@ class UserServiceTest {
         when(userSessionRepository.findBySessionKeyAndUserAndRevokedAtIsNull("other-user-session", me))
                 .thenReturn(Optional.empty());
 
-        ApiException exception = assertThrows(
-                ApiException.class,
-                () -> userService.endSession(me, "other-user-session")
-        );
+        ApiException exception = assertThrows(ApiException.class,
+                () -> userService.endSession(me, "other-user-session"));
 
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
     }
@@ -126,7 +120,7 @@ class UserServiceTest {
 
         UserService.EndOtherSessionsResponse result = userService.endOtherSessions(me, "current-session");
 
-        assertEquals("기타 세션이 종료되었습니다.", result.message());
+        assertEquals("다른 모든 세션을 종료했습니다.", result.message());
         assertEquals(2, result.count());
     }
 
@@ -154,12 +148,11 @@ class UserServiceTest {
 
         when(passwordEncoder.matches("OldPass!1", "encoded-old")).thenReturn(true);
         when(passwordEncoder.encode("NewPass!2")).thenReturn("encoded-new");
-        when(authService.rotateTokenPair(me)).thenReturn(new AuthService.TokenPair(
-                "new-access-token",
-                "new-refresh-token"
-        ));
+        when(authService.rotateTokenPair(me))
+                .thenReturn(new AuthService.TokenPair("new-access-token", "new-refresh-token"));
 
-        UserService.ChangePasswordResponse result = userService.changePassword(me, "OldPass!1", "NewPass!2", "NewPass!2");
+        UserService.ChangePasswordResponse result = userService.changePassword(me, "OldPass!1", "NewPass!2",
+                "NewPass!2");
 
         assertEquals("비밀번호가 성공적으로 변경되었습니다.", result.message());
         assertEquals("new-access-token", result.token());

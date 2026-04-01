@@ -3,6 +3,7 @@ package com.lshlabs.prompthubspring.user;
 import com.lshlabs.prompthubspring.auth.AuthService;
 import com.lshlabs.prompthubspring.auth.AuthTokenRepository;
 import com.lshlabs.prompthubspring.common.ApiException;
+import com.lshlabs.prompthubspring.common.CloudinaryService;
 import com.lshlabs.prompthubspring.post.PostInteractionRepository;
 import com.lshlabs.prompthubspring.post.PostRepository;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.security.SecureRandom;
 import java.util.HexFormat;
@@ -27,6 +29,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final PostRepository postRepository;
     private final PostInteractionRepository postInteractionRepository;
+    private final CloudinaryService cloudinaryService;
 
     public ProfileResponse profile(AppUser user) {
         UserSettings settings = userSettingsRepository.findByUser(user).orElseGet(() -> {
@@ -76,6 +79,26 @@ public class UserService {
 
         userRepository.save(user);
         return new UpdateProfileResponse("프로필이 업데이트되었습니다.", UserMapper.toUserData(user));
+    }
+
+    @Transactional
+    public UpdateProfileResponse updateProfile(AppUser user, ProfileUpdateRequest request, MultipartFile profileImageFile) {
+        String profileImageUrl = null;
+        if (profileImageFile != null && !profileImageFile.isEmpty()) {
+            profileImageUrl = cloudinaryService.uploadProfileImage(profileImageFile);
+        }
+
+        ProfileUpdateRequest normalized = new ProfileUpdateRequest(
+                request.username(),
+                request.bio(),
+                request.location(),
+                request.github_handle(),
+                profileImageUrl,
+                request.avatar_color1(),
+                request.avatar_color2()
+        );
+
+        return updateProfile(user, normalized);
     }
 
     @Transactional

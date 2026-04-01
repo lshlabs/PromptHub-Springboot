@@ -6,7 +6,7 @@ WORKDIR /app
 # package.json만 먼저 복사해서 캐싱 활용
 COPY frontend/package*.json ./
 
-RUN npm install --no-audit --no-fund
+RUN npm ci --no-audit --no-fund
 
 # 2단계: 빌드 (Builder)
 FROM node:20-alpine AS builder
@@ -37,6 +37,8 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+
+ENV HOSTNAME="0.0.0.0"
 
 # 보안: root 권한이 아닌 별도 유저로 실행 (보안성 강화)
 RUN addgroup --system --gid 1001 nodejs

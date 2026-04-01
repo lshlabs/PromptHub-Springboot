@@ -2,7 +2,9 @@ package com.lshlabs.prompthubspring.user;
 
 import com.lshlabs.prompthubspring.security.AuthSupport;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,7 +21,10 @@ public class UserController {
         return ResponseEntity.ok(userService.profile(authSupport.currentUserOrThrow()));
     }
 
-    @PutMapping({ "/profile", "/profile/" })
+    @PutMapping(
+            value = { "/profile", "/profile/" },
+            consumes = MediaType.APPLICATION_JSON_VALUE
+    )
     public ResponseEntity<UserService.UpdateProfileResponse> updateProfilePut(@RequestBody UserService.ProfileUpdateRequest payload) {
         return ResponseEntity.ok(userService.updateProfile(
                 authSupport.currentUserOrThrow(),
@@ -27,11 +32,72 @@ public class UserController {
         ));
     }
 
-    @PatchMapping({ "/profile", "/profile/" })
+    @PatchMapping(
+            value = { "/profile", "/profile/" },
+            consumes = MediaType.APPLICATION_JSON_VALUE
+    )
     public ResponseEntity<UserService.UpdateProfileResponse> updateProfilePatch(@RequestBody UserService.ProfileUpdateRequest payload) {
         return ResponseEntity.ok(userService.updateProfile(
                 authSupport.currentUserOrThrow(),
                 payload
+        ));
+    }
+
+    @PutMapping(
+            value = { "/profile", "/profile/" },
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<UserService.UpdateProfileResponse> updateProfilePutMultipart(
+            @RequestPart(value = "profile_image", required = false) MultipartFile profileImage,
+            @RequestPart(value = "username", required = false) String username,
+            @RequestPart(value = "bio", required = false) String bio,
+            @RequestPart(value = "location", required = false) String location,
+            @RequestPart(value = "github_handle", required = false) String githubHandle,
+            @RequestPart(value = "avatar_color1", required = false) String avatarColor1,
+            @RequestPart(value = "avatar_color2", required = false) String avatarColor2
+    ) {
+        var payload = new UserService.ProfileUpdateRequest(
+                username,
+                bio,
+                location,
+                githubHandle,
+                null,
+                avatarColor1,
+                avatarColor2
+        );
+        return ResponseEntity.ok(userService.updateProfile(
+                authSupport.currentUserOrThrow(),
+                payload,
+                profileImage
+        ));
+    }
+
+    @PatchMapping(
+            value = { "/profile", "/profile/" },
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<UserService.UpdateProfileResponse> updateProfilePatchMultipart(
+            @RequestPart(value = "profile_image", required = false) MultipartFile profileImage,
+            @RequestPart(value = "username", required = false) String username,
+            @RequestPart(value = "bio", required = false) String bio,
+            @RequestPart(value = "location", required = false) String location,
+            @RequestPart(value = "github_handle", required = false) String githubHandle,
+            @RequestPart(value = "avatar_color1", required = false) String avatarColor1,
+            @RequestPart(value = "avatar_color2", required = false) String avatarColor2
+    ) {
+        var payload = new UserService.ProfileUpdateRequest(
+                username,
+                bio,
+                location,
+                githubHandle,
+                null,
+                avatarColor1,
+                avatarColor2
+        );
+        return ResponseEntity.ok(userService.updateProfile(
+                authSupport.currentUserOrThrow(),
+                payload,
+                profileImage
         ));
     }
 
