@@ -367,7 +367,7 @@ export default function ProfilePage() {
       }
 
       if (userData.profileImage && !newUserData.profileImage) {
-        updateData.profile_image = null
+        updateData.remove_profile_image = true
       }
 
       const response = await authApi.updateProfile(updateData)

@@ -129,6 +129,7 @@ export interface UserProfileUpdateRequest {
   location?: string
   github_handle?: string
   profile_image?: File
+  remove_profile_image?: boolean
   avatar_color1?: string
   avatar_color2?: string
 }

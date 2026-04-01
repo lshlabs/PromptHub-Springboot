@@ -53,6 +53,7 @@ public class UserController {
             @RequestPart(value = "bio", required = false) String bio,
             @RequestPart(value = "location", required = false) String location,
             @RequestPart(value = "github_handle", required = false) String githubHandle,
+            @RequestPart(value = "remove_profile_image", required = false) String removeProfileImage,
             @RequestPart(value = "avatar_color1", required = false) String avatarColor1,
             @RequestPart(value = "avatar_color2", required = false) String avatarColor2
     ) {
@@ -62,6 +63,7 @@ public class UserController {
                 location,
                 githubHandle,
                 null,
+                parseBoolean(removeProfileImage),
                 avatarColor1,
                 avatarColor2
         );
@@ -82,6 +84,7 @@ public class UserController {
             @RequestPart(value = "bio", required = false) String bio,
             @RequestPart(value = "location", required = false) String location,
             @RequestPart(value = "github_handle", required = false) String githubHandle,
+            @RequestPart(value = "remove_profile_image", required = false) String removeProfileImage,
             @RequestPart(value = "avatar_color1", required = false) String avatarColor1,
             @RequestPart(value = "avatar_color2", required = false) String avatarColor2
     ) {
@@ -91,6 +94,7 @@ public class UserController {
                 location,
                 githubHandle,
                 null,
+                parseBoolean(removeProfileImage),
                 avatarColor1,
                 avatarColor2
         );
@@ -168,5 +172,12 @@ public class UserController {
     @GetMapping({ "/info", "/info/" })
     public ResponseEntity<UserService.UserInfoResponse> info() {
         return ResponseEntity.ok(userService.userInfo(authSupport.currentUserOrThrow()));
+    }
+
+    private Boolean parseBoolean(String raw) {
+        if (raw == null) {
+            return null;
+        }
+        return "true".equalsIgnoreCase(raw) || "1".equals(raw) || "yes".equalsIgnoreCase(raw) || "on".equalsIgnoreCase(raw);
     }
 }

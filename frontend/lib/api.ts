@@ -306,7 +306,11 @@ export const authApi = {
       const formData = new FormData()
       Object.entries(data).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
-          formData.append(key, value as File | string)
+          if (value instanceof File) {
+            formData.append(key, value)
+          } else {
+            formData.append(key, String(value))
+          }
         }
       })
       const response = await apiClient.put<UserProfileUpdateResponse>(

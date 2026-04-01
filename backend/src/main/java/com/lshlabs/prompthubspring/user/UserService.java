@@ -67,6 +67,9 @@ public class UserService {
         if (request.github_handle() != null) {
             user.setGithubHandle(request.github_handle());
         }
+        if (Boolean.TRUE.equals(request.remove_profile_image())) {
+            user.setProfileImage(null);
+        }
         if (request.profile_image() != null) {
             user.setProfileImage(request.profile_image());
         }
@@ -94,6 +97,7 @@ public class UserService {
                 request.location(),
                 request.github_handle(),
                 profileImageUrl,
+                request.remove_profile_image(),
                 request.avatar_color1(),
                 request.avatar_color2()
         );
@@ -277,6 +281,7 @@ public class UserService {
             String location,
             String github_handle,
             String profile_image,
+            Boolean remove_profile_image,
             String avatar_color1,
             String avatar_color2
     ) {}
