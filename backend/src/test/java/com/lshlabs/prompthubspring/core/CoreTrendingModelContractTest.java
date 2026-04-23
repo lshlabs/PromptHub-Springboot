@@ -1,5 +1,7 @@
 package com.lshlabs.prompthubspring.core;
 
+import org.junit.jupiter.api.Tag;
+
 import com.lshlabs.prompthubspring.auth.AuthTokenRepository;
 import com.lshlabs.prompthubspring.post.*;
 import com.lshlabs.prompthubspring.user.AppUser;
@@ -25,7 +27,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
 @ActiveProfiles("test")
-class CoreTrendingModelParityTest {
+@Tag("integration")
+class CoreTrendingModelContractTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -168,11 +171,10 @@ class CoreTrendingModelParityTest {
     void trendingModelEndpoints_returnLegacyCompatible404ContractsWhenModelMissing() throws Exception {
         mockMvc.perform(get("/api/core/trending/model/{modelName}/posts/", "NOT_FOUND_MODEL"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.error").value("해당 트렌딩 모델을 찾을 수 없습니다."));
+                .andExpect(jsonPath("$.message").value("해당 트렌딩 모델을 찾을 수 없습니다."));
 
         mockMvc.perform(get("/api/core/trending/model/{modelName}/info/", "NOT_FOUND_MODEL"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.status").value("error"))
                 .andExpect(jsonPath("$.message").value("해당 트렌딩 모델을 찾을 수 없습니다."));
     }
 

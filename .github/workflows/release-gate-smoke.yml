@@ -6,7 +6,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  smoke-gate:
+  pre-release-gate:
     runs-on: ubuntu-latest
 
     steps:
@@ -22,10 +22,13 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Run contract gate
+        working-directory: backend
+        run: ./gradlew contractTest
+
       - name: Run release-gate smoke tests
         working-directory: backend
         run: |
-          ./gradlew test \
+          ./gradlew smokeTest \
             --tests com.lshlabs.prompthubspring.smoke.ReleaseGateSmokeTest \
-            --tests com.lshlabs.prompthubspring.smoke.TrailingSlashCompatibilitySmokeTest \
-            --tests com.lshlabs.prompthubspring.verification.Diff06ReleaseGateEvidenceVerificationTest
+            --tests com.lshlabs.prompthubspring.smoke.TrailingSlashCompatibilitySmokeTest

@@ -1,5 +1,7 @@
 package com.lshlabs.prompthubspring.security;
 
+import org.junit.jupiter.api.Tag;
+
 import com.lshlabs.prompthubspring.user.AppUser;
 import com.lshlabs.prompthubspring.user.AppUserRepository;
 import com.lshlabs.prompthubspring.user.UserSettingsRepository;
@@ -22,7 +24,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.jpa.hibernate.ddl-auto=create-drop"
 })
 @AutoConfigureMockMvc
-class PublicEndpointParitySecurityTest {
+@Tag("contract")
+@Tag("integration")
+class PublicEndpointSecurityTest {
 
     @Autowired
     private MockMvc mockMvc;

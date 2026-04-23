@@ -1,5 +1,7 @@
 package com.lshlabs.prompthubspring.smoke;
 
+import org.junit.jupiter.api.Tag;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -28,7 +30,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Testcontainers(disabledWithoutDocker = true)
-class Section7ContainerSmokeTest {
+@Tag("smoke")
+@Tag("container")
+class ContainerSmokeTest {
 
     @Container
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
@@ -52,7 +56,7 @@ class Section7ContainerSmokeTest {
         registry.add("spring.data.redis.host", REDIS::getHost);
         registry.add("spring.data.redis.port", () -> REDIS.getMappedPort(6379));
 
-        registry.add("app.security.jwt.secret", () -> "section7-container-secret-section7-container-secret");
+        registry.add("app.security.jwt.secret", () -> "container-smoke-secret-container-smoke-secret");
         registry.add("app.security.jwt.access-expiration-ms", () -> 3600000L);
         registry.add("app.security.jwt.refresh-expiration-ms", () -> 1209600000L);
     }

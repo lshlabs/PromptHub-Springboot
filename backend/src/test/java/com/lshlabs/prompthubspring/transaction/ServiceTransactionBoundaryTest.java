@@ -1,5 +1,7 @@
 package com.lshlabs.prompthubspring.transaction;
 
+import org.junit.jupiter.api.Tag;
+
 import com.lshlabs.prompthubspring.auth.AuthService;
 import com.lshlabs.prompthubspring.post.PostService;
 import com.lshlabs.prompthubspring.user.UserService;
@@ -11,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
+@Tag("unit")
 class ServiceTransactionBoundaryTest {
 
     @Test

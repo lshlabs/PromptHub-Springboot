@@ -1,5 +1,7 @@
 package com.lshlabs.prompthubspring.post;
 
+import org.junit.jupiter.api.Tag;
+
 import com.lshlabs.prompthubspring.user.AppUser;
 import com.lshlabs.prompthubspring.user.AppUserRepository;
 import org.junit.jupiter.api.Test;
@@ -24,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
         "spring.datasource.driver-class-name=org.h2.Driver",
         "spring.jpa.hibernate.ddl-auto=create-drop"
 })
+@Tag("integration")
 class PostInteractionConcurrencyTest {
 
     @Autowired
@@ -42,14 +45,14 @@ class PostInteractionConcurrencyTest {
     @Test
     void concurrentToggle_keepsLikeAndBookmarkCountsConsistent() throws Exception {
         AppUser author = saveUser("author");
-        AppUser u1 = saveUser("u1");
-        AppUser u2 = saveUser("u2");
-        AppUser u3 = saveUser("u3");
+        AppUser userOne = saveUser("u1");
+        AppUser userTwo = saveUser("u2");
+        AppUser userThree = saveUser("u3");
         Platform platform = savePlatform("OpenAI");
         Category category = saveCategory("일반");
         Post post = savePost(author, platform, category);
 
-        List<Long> userIds = List.of(u1.getId(), u2.getId(), u3.getId(), u1.getId(), u2.getId(), u3.getId());
+        List<Long> userIds = List.of(userOne.getId(), userTwo.getId(), userThree.getId(), userOne.getId(), userTwo.getId(), userThree.getId());
         ExecutorService executor = Executors.newFixedThreadPool(8);
         List<Callable<Void>> tasks = new ArrayList<>();
         for (int i = 0; i < 120; i++) {
@@ -109,25 +112,25 @@ class PostInteractionConcurrencyTest {
     @Test
     void likedAndBookmarkedEndpoints_matchInteractionState() {
         AppUser author = saveUser("author3");
-        AppUser me = saveUser("me");
+        AppUser currentUser = saveUser("current-user");
         Platform platform = savePlatform("Google");
         Category category = saveCategory("검증");
-        Post post1 = savePost(author, platform, category);
-        Post post2 = savePost(author, platform, category);
+        Post likedPost = savePost(author, platform, category);
+        Post bookmarkedPost = savePost(author, platform, category);
 
-        postService.toggleLike(me, post1.getId());
-        postService.toggleBookmark(me, post2.getId());
+        postService.toggleLike(currentUser, likedPost.getId());
+        postService.toggleBookmark(currentUser, bookmarkedPost.getId());
 
-        PostService.PostListResponse liked = postService.liked(me, 1, 20);
-        PostService.PostListResponse bookmarked = postService.bookmarked(me, 1, 20);
+        PostService.PostListResponse liked = postService.liked(currentUser, 1, 20);
+        PostService.PostListResponse bookmarked = postService.bookmarked(currentUser, 1, 20);
 
         List<PostService.PostData> likedResults = liked.data().results();
         List<PostService.PostData> bookmarkedResults = bookmarked.data().results();
 
         assertEquals(1, likedResults.size());
-        assertEquals(post1.getId(), likedResults.get(0).id());
+        assertEquals(likedPost.getId(), likedResults.get(0).id());
         assertEquals(1, bookmarkedResults.size());
-        assertEquals(post2.getId(), bookmarkedResults.get(0).id());
+        assertEquals(bookmarkedPost.getId(), bookmarkedResults.get(0).id());
     }
 
     private AppUser saveUser(String username) {
@@ -140,16 +143,16 @@ class PostInteractionConcurrencyTest {
     }
 
     private Platform savePlatform(String name) {
-        Platform p = new Platform();
-        p.setName(name + "_" + UUID.randomUUID().toString().substring(0, 8));
-        p.setActive(true);
-        return platformRepository.save(p);
+        Platform platform = new Platform();
+        platform.setName(name + "_" + UUID.randomUUID().toString().substring(0, 8));
+        platform.setActive(true);
+        return platformRepository.save(platform);
     }
 
     private Category saveCategory(String name) {
-        Category c = new Category();
-        c.setName(name + "_" + UUID.randomUUID().toString().substring(0, 8));
-        return categoryRepository.save(c);
+        Category category = new Category();
+        category.setName(name + "_" + UUID.randomUUID().toString().substring(0, 8));
+        return categoryRepository.save(category);
     }
 
     private Post savePost(AppUser author, Platform platform, Category category) {

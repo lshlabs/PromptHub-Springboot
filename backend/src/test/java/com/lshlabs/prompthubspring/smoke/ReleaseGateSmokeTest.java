@@ -1,5 +1,7 @@
 package com.lshlabs.prompthubspring.smoke;
 
+import org.junit.jupiter.api.Tag;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -18,6 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@Tag("smoke")
 class ReleaseGateSmokeTest {
 
     @Autowired

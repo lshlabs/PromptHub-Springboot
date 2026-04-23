@@ -29,7 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.jpa.hibernate.ddl-auto=create-drop"
 })
 @AutoConfigureMockMvc
-class UserPasswordChangeTokenRotationFlowTest {
+class UserPasswordChangeRotationTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -62,7 +62,7 @@ class UserPasswordChangeTokenRotationFlowTest {
         String oldAccess = registerJson.path("token").asText();
         String oldRefresh = registerJson.path("refresh").asText();
 
-        var changeResult = mockMvc.perform(patch("/api/auth/profile/password/")
+        var changeResult = mockMvc.perform(patch("/api/auth/profile/password")
                         .header("Authorization", "Token " + oldAccess)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -82,23 +82,23 @@ class UserPasswordChangeTokenRotationFlowTest {
         String newAccess = changeJson.path("token").asText();
         String newRefresh = changeJson.path("refresh").asText();
 
-        mockMvc.perform(get("/api/auth/info/")
+        mockMvc.perform(get("/api/auth/info")
                         .header("Authorization", "Token " + oldAccess))
                 .andExpect(status().isForbidden());
 
-        mockMvc.perform(get("/api/auth/info/")
+        mockMvc.perform(get("/api/auth/info")
                         .header("Authorization", "Token " + newAccess))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value(email));
 
-        mockMvc.perform(post("/api/auth/token/refresh/")
+        mockMvc.perform(post("/api/auth/token/refresh")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"refresh":"%s"}
                                 """.formatted(oldRefresh)))
                 .andExpect(status().isUnauthorized());
 
-        mockMvc.perform(post("/api/auth/token/refresh/")
+        mockMvc.perform(post("/api/auth/token/refresh")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"refresh":"%s"}
@@ -123,7 +123,7 @@ class UserPasswordChangeTokenRotationFlowTest {
     }
 
     private JsonNode registerAndRead(String email, String password) throws Exception {
-        var result = mockMvc.perform(post("/api/auth/register/")
+        var result = mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {

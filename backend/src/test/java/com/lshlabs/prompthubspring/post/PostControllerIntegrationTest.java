@@ -1,5 +1,7 @@
 package com.lshlabs.prompthubspring.post;
 
+import org.junit.jupiter.api.Tag;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.JsonPath;
 import com.lshlabs.prompthubspring.auth.AuthToken;
@@ -41,14 +43,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:h2:mem:prompthub_post_section4;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH",
+        "spring.datasource.url=jdbc:h2:mem:prompthub_post_integration;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH",
         "spring.datasource.username=sa",
         "spring.datasource.password=",
         "spring.datasource.driver-class-name=org.h2.Driver",
         "spring.jpa.hibernate.ddl-auto=create-drop"
 })
 @AutoConfigureMockMvc
-class PostControllerSection4FlowTest {
+@Tag("integration")
+class PostControllerIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -96,7 +99,7 @@ class PostControllerSection4FlowTest {
 
         Map<String, Object> createPayload = payload(platform.getId(), model.getId(), category.getId(), "초기 제목");
 
-        MvcResult createResult = mockMvc.perform(post("/api/posts/create/")
+        MvcResult createResult = mockMvc.perform(post("/api/posts/create")
                         .header("Authorization", "Token " + authorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createPayload)))
@@ -111,7 +114,7 @@ class PostControllerSection4FlowTest {
 
         Long postId = ((Number) JsonPath.read(createResult.getResponse().getContentAsString(), "$.data.id")).longValue();
 
-        mockMvc.perform(get("/api/posts/"))
+        mockMvc.perform(get("/api/posts"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("success"))
                 .andExpect(jsonPath("$.data.results").isArray())
@@ -124,7 +127,7 @@ class PostControllerSection4FlowTest {
                 .andExpect(jsonPath("$.data.results[0]", hasKey("categoryId")))
                 .andExpect(jsonPath("$.data.results[0].relativeTime", not(is(emptyString()))));
 
-        mockMvc.perform(get("/api/posts/{postId}/", postId))
+        mockMvc.perform(get("/api/posts/{postId}", postId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("success"))
                 .andExpect(jsonPath("$.data.id").value(postId))
@@ -134,7 +137,7 @@ class PostControllerSection4FlowTest {
                 .andExpect(jsonPath("$.data.relativeTime", not(is(emptyString()))));
 
         Map<String, Object> updatePayload = payload(platform.getId(), model.getId(), category.getId(), "수정 제목");
-        mockMvc.perform(patch("/api/posts/{postId}/update/", postId)
+        mockMvc.perform(patch("/api/posts/{postId}/update", postId)
                         .header("Authorization", "Token " + authorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updatePayload)))
@@ -142,12 +145,12 @@ class PostControllerSection4FlowTest {
                 .andExpect(jsonPath("$.status").value("success"))
                 .andExpect(jsonPath("$.data.title").value("수정 제목"));
 
-        mockMvc.perform(delete("/api/posts/{postId}/delete/", postId)
+        mockMvc.perform(delete("/api/posts/{postId}/delete", postId)
                         .header("Authorization", "Token " + authorToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("success"));
 
-        mockMvc.perform(get("/api/posts/{postId}/", postId))
+        mockMvc.perform(get("/api/posts/{postId}", postId))
                 .andExpect(status().isNotFound());
     }
 
@@ -163,14 +166,14 @@ class PostControllerSection4FlowTest {
         AiModel model = saveModel(platform, "claude-3.5");
         Long postId = createPost(authorToken, payload(platform.getId(), model.getId(), category.getId(), "작성자 글"));
 
-        mockMvc.perform(patch("/api/posts/{postId}/update/", postId)
+        mockMvc.perform(patch("/api/posts/{postId}/update", postId)
                         .header("Authorization", "Token " + otherToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(payload(platform.getId(), model.getId(), category.getId(), "남의 글 수정"))))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.message").value("게시글을 수정할 권한이 없습니다."));
 
-        mockMvc.perform(delete("/api/posts/{postId}/delete/", postId)
+        mockMvc.perform(delete("/api/posts/{postId}/delete", postId)
                         .header("Authorization", "Token " + otherToken))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.message").value("게시글을 삭제할 권한이 없습니다."));
@@ -180,45 +183,45 @@ class PostControllerSection4FlowTest {
     void create_rejects_invalidCombinations_fromDtoAndServiceValidation() throws Exception {
         AppUser author = saveUser("author");
         String authorToken = issueAccessToken(author);
-        Platform p1 = savePlatform("Google");
-        Platform p2 = savePlatform("OpenAI");
+        Platform googlePlatform = savePlatform("Google");
+        Platform openAiPlatform = savePlatform("OpenAI");
         Category category = saveCategory("일반");
         Category etcCategory = saveCategory("기타");
-        AiModel modelOnP2 = saveModel(p2, "gpt-4.1");
+        AiModel modelOnOpenAi = saveModel(openAiPlatform, "gpt-4.1");
 
-        Map<String, Object> mismatchPayload = payload(p1.getId(), modelOnP2.getId(), etcCategory.getId(), "검증 글");
+        Map<String, Object> mismatchPayload = payload(googlePlatform.getId(), modelOnOpenAi.getId(), etcCategory.getId(), "검증 글");
         mismatchPayload.put("category_etc", "직접입력");
-        mockMvc.perform(post("/api/posts/create/")
+        mockMvc.perform(post("/api/posts/create")
                         .header("Authorization", "Token " + authorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(mismatchPayload)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("선택한 모델이 플랫폼과 일치하지 않습니다."));
 
-        Map<String, Object> missingCategoryEtcPayload = payload(p1.getId(), null, etcCategory.getId(), "검증 글2");
-        missingCategoryEtcPayload.put("model_etc", "직접입력");
-        mockMvc.perform(post("/api/posts/create/")
+        Map<String, Object> missingCategoryEtc = payload(googlePlatform.getId(), null, etcCategory.getId(), "검증 글2");
+        missingCategoryEtc.put("model_etc", "직접입력");
+        mockMvc.perform(post("/api/posts/create")
                         .header("Authorization", "Token " + authorToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(missingCategoryEtcPayload)))
+                        .content(objectMapper.writeValueAsString(missingCategoryEtc)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("기타 카테고리를 선택한 경우 category_etc를 입력해야 합니다."));
 
-        Map<String, Object> dtoInvalidPayload = payload(p1.getId(), null, etcCategory.getId(), "bad");
+        Map<String, Object> dtoInvalidPayload = payload(googlePlatform.getId(), null, etcCategory.getId(), "bad");
         dtoInvalidPayload.put("category_etc", "직접입력");
         dtoInvalidPayload.put("satisfaction", new BigDecimal("5.5"));
-        mockMvc.perform(post("/api/posts/create/")
+        mockMvc.perform(post("/api/posts/create")
                         .header("Authorization", "Token " + authorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dtoInvalidPayload)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("유효성 검사 실패"));
 
-        Map<String, Object> invalidHalfStepPayload = payload(p1.getId(), modelOnP2.getId(), etcCategory.getId(), "0.5 단위 위반");
+        Map<String, Object> invalidHalfStepPayload = payload(googlePlatform.getId(), modelOnOpenAi.getId(), etcCategory.getId(), "0.5 단위 위반");
         invalidHalfStepPayload.put("category_etc", "직접입력");
-        invalidHalfStepPayload.put("platform", p2.getId());
+        invalidHalfStepPayload.put("platform", openAiPlatform.getId());
         invalidHalfStepPayload.put("satisfaction", new BigDecimal("4.3"));
-        mockMvc.perform(post("/api/posts/create/")
+        mockMvc.perform(post("/api/posts/create")
                         .header("Authorization", "Token " + authorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidHalfStepPayload)))
@@ -229,9 +232,9 @@ class PostControllerSection4FlowTest {
         AiModel etcModel = saveModelExact(etcPlatform, "기타");
         AiModel nonEtcOnEtcPlatform = saveModelExact(etcPlatform, "gpt-etc-platform");
 
-        Map<String, Object> missingModelAndEtc = payload(p1.getId(), null, category.getId(), "모델 없음");
+        Map<String, Object> missingModelAndEtc = payload(googlePlatform.getId(), null, category.getId(), "모델 없음");
         missingModelAndEtc.put("model_etc", "");
-        mockMvc.perform(post("/api/posts/create/")
+        mockMvc.perform(post("/api/posts/create")
                         .header("Authorization", "Token " + authorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(missingModelAndEtc)))
@@ -241,31 +244,31 @@ class PostControllerSection4FlowTest {
         Map<String, Object> etcPlatformNonEtcModel = payload(etcPlatform.getId(), nonEtcOnEtcPlatform.getId(),
                 category.getId(), "기타 플랫폼 비기타 모델");
         etcPlatformNonEtcModel.put("model_etc", "");
-        mockMvc.perform(post("/api/posts/create/")
+        mockMvc.perform(post("/api/posts/create")
                         .header("Authorization", "Token " + authorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(etcPlatformNonEtcModel)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("플랫폼이 기타인 경우 기타 모델만 선택할 수 있습니다."));
 
-        Map<String, Object> etcPlatformMissingModelEtc = payload(etcPlatform.getId(), etcModel.getId(),
+        Map<String, Object> etcPlatformMissingEtcName = payload(etcPlatform.getId(), etcModel.getId(),
                 category.getId(), "기타 플랫폼 model_etc 누락");
-        etcPlatformMissingModelEtc.put("model_etc", "");
-        mockMvc.perform(post("/api/posts/create/")
+        etcPlatformMissingEtcName.put("model_etc", "");
+        mockMvc.perform(post("/api/posts/create")
                         .header("Authorization", "Token " + authorToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(etcPlatformMissingModelEtc)))
+                        .content(objectMapper.writeValueAsString(etcPlatformMissingEtcName)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("플랫폼이 기타인 경우 기타 모델명을 입력해야 합니다."));
 
-        Map<String, Object> etcPlatformWithModelDetail = payload(etcPlatform.getId(), etcModel.getId(),
+        Map<String, Object> etcPlatformWithDetail = payload(etcPlatform.getId(), etcModel.getId(),
                 category.getId(), "기타 플랫폼 상세모델");
-        etcPlatformWithModelDetail.put("model_etc", "직접입력");
-        etcPlatformWithModelDetail.put("model_detail", "detail");
-        mockMvc.perform(post("/api/posts/create/")
+        etcPlatformWithDetail.put("model_etc", "직접입력");
+        etcPlatformWithDetail.put("model_detail", "detail");
+        mockMvc.perform(post("/api/posts/create")
                         .header("Authorization", "Token " + authorToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(etcPlatformWithModelDetail)))
+                        .content(objectMapper.writeValueAsString(etcPlatformWithDetail)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("플랫폼이 기타인 경우 상세 모델명을 사용할 수 없습니다."));
 
@@ -275,7 +278,7 @@ class PostControllerSection4FlowTest {
                 category.getId(), "기타 모델 상세");
         etcModelWithDetail.put("model_etc", "직접입력");
         etcModelWithDetail.put("model_detail", "detail");
-        mockMvc.perform(post("/api/posts/create/")
+        mockMvc.perform(post("/api/posts/create")
                         .header("Authorization", "Token " + authorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(etcModelWithDetail)))
@@ -286,7 +289,7 @@ class PostControllerSection4FlowTest {
                 category.getId(), "허용 조합");
         allowedEtcCombination.put("model_etc", "커스텀 모델");
         allowedEtcCombination.put("model_detail", "");
-        mockMvc.perform(post("/api/posts/create/")
+        mockMvc.perform(post("/api/posts/create")
                         .header("Authorization", "Token " + authorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(allowedEtcCombination)))
@@ -308,7 +311,7 @@ class PostControllerSection4FlowTest {
         saveModelWithSlug(openai, "General Assistant", "assistant-core", 3);
         saveModelWithSlug(anthropic, "Claude Sonnet 4.5", "claude-sonnet-4.5", 1);
 
-        mockMvc.perform(get("/api/posts/models/suggest/")
+        mockMvc.perform(get("/api/posts/models/suggest")
                         .param("query", "gpt"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("success"))
@@ -318,7 +321,7 @@ class PostControllerSection4FlowTest {
                 .andExpect(jsonPath("$.data.suggestions[0].platform.slug").value("openai"))
                 .andExpect(jsonPath("$.data.suggestions[0].platform.id", is(openai.getId().intValue())));
 
-        mockMvc.perform(get("/api/posts/models/suggest/")
+        mockMvc.perform(get("/api/posts/models/suggest")
                         .param("query", "anth")
                         .param("platform_id", anthropic.getId().toString()))
                 .andExpect(status().isOk())
@@ -466,30 +469,30 @@ class PostControllerSection4FlowTest {
         AppUser authorMatch = saveUser("writer_keyword");
         AppUser authorOther = saveUser("other");
 
-        Platform p1 = savePlatformExact("OpenAI");
-        Platform p2 = savePlatformExact("Anthropic");
-        Category cNormal = saveCategory("일반");
-        Category cEtc = saveCategory("기타");
-        AiModel mNormal = saveModelExact(p1, "GPT");
-        AiModel mEtc = saveModelExact(p1, "기타");
+        Platform openAiPlatform = savePlatformExact("OpenAI");
+        Platform anthropicPlatform = savePlatformExact("Anthropic");
+        Category generalCategory = saveCategory("일반");
+        Category etcCategory = saveCategory("기타");
+        AiModel defaultModel = saveModelExact(openAiPlatform, "GPT");
+        AiModel etcModel = saveModelExact(openAiPlatform, "기타");
 
-        Post titlePost = savePostDirect(authorOther, p1, cNormal, mNormal, "Alpha title post",
+        Post titlePost = savePostDirect(authorOther, openAiPlatform, generalCategory, defaultModel, "Alpha title post",
                 "prompt body", "ai body", "opinion", null, null,
                 10, 2, 1, new BigDecimal("3.5"), Instant.now().minus(1, ChronoUnit.DAYS));
-        Post contentPost = savePostDirect(authorOther, p1, cNormal, mNormal, "Beta",
+        Post contentPost = savePostDirect(authorOther, openAiPlatform, generalCategory, defaultModel, "Beta",
                 "needle-content in prompt", "ai body", "opinion", null, null,
                 30, 5, 3, new BigDecimal("5.0"), Instant.now().minus(2, ChronoUnit.DAYS));
-        Post authorPost = savePostDirect(authorMatch, p2, cNormal, mNormal, "Gamma",
+        Post authorPost = savePostDirect(authorMatch, anthropicPlatform, generalCategory, defaultModel, "Gamma",
                 "prompt body", "ai body", "opinion", null, null,
                 5, 1, 0, new BigDecimal("4.0"), Instant.now().minus(3, ChronoUnit.DAYS));
-        Post etcCategoryPost = savePostDirect(authorOther, p1, cEtc, mNormal, "Etc Category",
+        Post etcCategoryPost = savePostDirect(authorOther, openAiPlatform, etcCategory, defaultModel, "Etc Category",
                 "prompt body", "ai body", "opinion", null, "custom-category",
                 1, 0, 0, new BigDecimal("2.0"), Instant.now().minus(4, ChronoUnit.DAYS));
-        Post etcModelPost = savePostDirect(authorOther, p1, cNormal, mEtc, "Etc Model",
+        Post etcModelPost = savePostDirect(authorOther, openAiPlatform, generalCategory, etcModel, "Etc Model",
                 "prompt body", "ai body", "opinion", "custom-model", null,
                 1, 0, 0, new BigDecimal("2.5"), Instant.now().minus(5, ChronoUnit.DAYS));
 
-        MvcResult titleSearch = mockMvc.perform(get("/api/posts/")
+        MvcResult titleSearch = mockMvc.perform(get("/api/posts")
                         .param("search", "Alpha")
                         .param("search_type", "title"))
                 .andExpect(status().isOk())
@@ -498,7 +501,7 @@ class PostControllerSection4FlowTest {
         assertEquals(1, titleResults.size());
         assertEquals(titlePost.getId().intValue(), ((Number) titleResults.get(0).get("id")).intValue());
 
-        MvcResult contentSearch = mockMvc.perform(get("/api/posts/")
+        MvcResult contentSearch = mockMvc.perform(get("/api/posts")
                         .param("search", "needle-content")
                         .param("search_type", "content"))
                 .andExpect(status().isOk())
@@ -507,7 +510,7 @@ class PostControllerSection4FlowTest {
         assertEquals(1, contentResults.size());
         assertEquals(contentPost.getId().intValue(), ((Number) contentResults.get(0).get("id")).intValue());
 
-        MvcResult authorSearch = mockMvc.perform(get("/api/posts/")
+        MvcResult authorSearch = mockMvc.perform(get("/api/posts")
                         .param("search", "writer_keyword")
                         .param("search_type", "author"))
                 .andExpect(status().isOk())
@@ -516,45 +519,45 @@ class PostControllerSection4FlowTest {
         assertEquals(1, authorResults.size());
         assertEquals(authorPost.getId().intValue(), ((Number) authorResults.get(0).get("id")).intValue());
 
-        MvcResult popularSort = mockMvc.perform(get("/api/posts/")
+        MvcResult popularSort = mockMvc.perform(get("/api/posts")
                         .param("sort_by", "popular"))
                 .andExpect(status().isOk())
                 .andReturn();
         List<Map<String, Object>> popularResults = JsonPath.read(popularSort.getResponse().getContentAsString(), "$.data.results");
         assertEquals(contentPost.getId().intValue(), ((Number) popularResults.get(0).get("id")).intValue());
 
-        MvcResult satisfactionSort = mockMvc.perform(get("/api/posts/")
+        MvcResult satisfactionSort = mockMvc.perform(get("/api/posts")
                         .param("sort_by", "satisfaction"))
                 .andExpect(status().isOk())
                 .andReturn();
         List<Map<String, Object>> satisfactionResults = JsonPath.read(satisfactionSort.getResponse().getContentAsString(), "$.data.results");
         assertEquals(contentPost.getId().intValue(), ((Number) satisfactionResults.get(0).get("id")).intValue());
 
-        MvcResult categoryFilter = mockMvc.perform(get("/api/posts/")
-                        .param("categories", cEtc.getId().toString()))
+        MvcResult categoryFilter = mockMvc.perform(get("/api/posts")
+                        .param("categories", etcCategory.getId().toString()))
                 .andExpect(status().isOk())
                 .andReturn();
         List<Map<String, Object>> categoryResults = JsonPath.read(categoryFilter.getResponse().getContentAsString(), "$.data.results");
         assertEquals(1, categoryResults.size());
         assertEquals(etcCategoryPost.getId().intValue(), ((Number) categoryResults.get(0).get("id")).intValue());
 
-        MvcResult modelFilter = mockMvc.perform(get("/api/posts/")
-                        .param("models", mEtc.getId().toString()))
+        MvcResult modelFilter = mockMvc.perform(get("/api/posts")
+                        .param("models", etcModel.getId().toString()))
                 .andExpect(status().isOk())
                 .andReturn();
         List<Map<String, Object>> modelResults = JsonPath.read(modelFilter.getResponse().getContentAsString(), "$.data.results");
         assertEquals(1, modelResults.size());
         assertEquals(etcModelPost.getId().intValue(), ((Number) modelResults.get(0).get("id")).intValue());
 
-        MvcResult platformFilter = mockMvc.perform(get("/api/posts/")
-                        .param("platforms", p2.getId().toString()))
+        MvcResult platformFilter = mockMvc.perform(get("/api/posts")
+                        .param("platforms", anthropicPlatform.getId().toString()))
                 .andExpect(status().isOk())
                 .andReturn();
         List<Map<String, Object>> platformResults = JsonPath.read(platformFilter.getResponse().getContentAsString(), "$.data.results");
         assertEquals(1, platformResults.size());
         assertEquals(authorPost.getId().intValue(), ((Number) platformResults.get(0).get("id")).intValue());
 
-        MvcResult excludeResult = mockMvc.perform(get("/api/posts/")
+        MvcResult excludeResult = mockMvc.perform(get("/api/posts")
                         .param("exclude_id", titlePost.getId().toString()))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -564,7 +567,7 @@ class PostControllerSection4FlowTest {
     }
 
     private Long createPost(String token, Map<String, Object> payload) throws Exception {
-        MvcResult result = mockMvc.perform(post("/api/posts/create/")
+        MvcResult result = mockMvc.perform(post("/api/posts/create")
                         .header("Authorization", "Token " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(payload)))
@@ -582,7 +585,7 @@ class PostControllerSection4FlowTest {
         map.put("model_detail", "");
         map.put("category", categoryId);
         map.put("category_etc", "");
-        map.put("tags", List.of("section4", "contract"));
+        map.put("tags", List.of("integration", "contract"));
         map.put("satisfaction", new BigDecimal("4.5"));
         map.put("prompt", "섹션4 통합 테스트용 충분히 긴 prompt 내용입니다.");
         map.put("ai_response", "섹션4 통합 테스트용 충분히 긴 ai_response 내용입니다.");
@@ -611,25 +614,25 @@ class PostControllerSection4FlowTest {
     }
 
     private Platform savePlatform(String name) {
-        Platform p = new Platform();
-        p.setName(name + "_" + UUID.randomUUID().toString().substring(0, 8));
-        p.setSlug(p.getName().toLowerCase().replace(' ', '-'));
-        p.setActive(true);
-        return platformRepository.save(p);
+        Platform platform = new Platform();
+        platform.setName(name + "_" + UUID.randomUUID().toString().substring(0, 8));
+        platform.setSlug(platform.getName().toLowerCase().replace(' ', '-'));
+        platform.setActive(true);
+        return platformRepository.save(platform);
     }
 
     private Platform savePlatformExact(String name) {
-        Platform p = new Platform();
-        p.setName(name);
-        p.setSlug(name.toLowerCase().replace(' ', '-'));
-        p.setActive(true);
-        return platformRepository.save(p);
+        Platform platform = new Platform();
+        platform.setName(name);
+        platform.setSlug(name.toLowerCase().replace(' ', '-'));
+        platform.setActive(true);
+        return platformRepository.save(platform);
     }
 
     private Category saveCategory(String name) {
-        Category c = new Category();
-        c.setName(name);
-        return categoryRepository.save(c);
+        Category category = new Category();
+        category.setName(name);
+        return categoryRepository.save(category);
     }
 
     private AiModel saveModel(Platform platform, String name) {

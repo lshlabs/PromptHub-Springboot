@@ -27,7 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.jpa.hibernate.ddl-auto=create-drop"
 })
 @AutoConfigureMockMvc
-class UserPublicProfileSummaryMaskingFlowTest {
+class UserPublicProfileMaskingTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -60,7 +60,7 @@ class UserPublicProfileSummaryMaskingFlowTest {
         createSettings(privateUser, false);
         String accessToken = issueAccessToken(privateUser);
 
-        mockMvc.perform(get("/api/auth/users/{username}/summary/", "private-user")
+        mockMvc.perform(get("/api/auth/users/{username}/summary", "private-user")
                         .header("Authorization", "Token " + accessToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value("private-user"))
@@ -73,14 +73,14 @@ class UserPublicProfileSummaryMaskingFlowTest {
         AppUser publicUser = createUser("public@example.com", "public-user", "public bio");
         createSettings(publicUser, true);
 
-        mockMvc.perform(get("/api/auth/users/{username}/summary/", "public-user")
+        mockMvc.perform(get("/api/auth/users/{username}/summary", "public-user")
                         .header("Authorization", "Token " + accessToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value("public-user"))
                 .andExpect(jsonPath("$.bio").value("public bio"));
 
         AppUser defaultUser = createUser("default@example.com", "default-user", "default bio");
-        mockMvc.perform(get("/api/auth/users/{username}/summary/", "default-user")
+        mockMvc.perform(get("/api/auth/users/{username}/summary", "default-user")
                         .header("Authorization", "Token " + accessToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value("default-user"))

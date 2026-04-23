@@ -1,5 +1,7 @@
 package com.lshlabs.prompthubspring.stats;
 
+import org.junit.jupiter.api.Tag;
+
 import com.lshlabs.prompthubspring.auth.AuthTokenRepository;
 import com.lshlabs.prompthubspring.post.Category;
 import com.lshlabs.prompthubspring.post.CategoryRepository;
@@ -31,13 +33,14 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:h2:mem:prompthub_stats_section6;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH",
+        "spring.datasource.url=jdbc:h2:mem:prompthub_stats;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH",
         "spring.datasource.username=sa",
         "spring.datasource.password=",
         "spring.datasource.driver-class-name=org.h2.Driver",
         "spring.jpa.hibernate.ddl-auto=create-drop"
 })
-class StatsServiceSection6Test {
+@Tag("integration")
+class StatsServiceTest {
 
     @Autowired
     private StatsService statsService;
@@ -78,10 +81,10 @@ class StatsServiceSection6Test {
     void dashboard_returnsAggregatedValuesAndCachesResult() {
         Platform platform = ensurePlatform();
         Category category = ensureCategory();
-        AppUser author = saveUser("section6_stats_author");
+        AppUser author = saveUser("stats_stats_author");
 
-        Post p1 = savePost(author, platform, category, "대시보드 포스트1", 101, 10, 5, new BigDecimal("4.5"));
-        Post p2 = savePost(author, platform, category, "대시보드 포스트2", 99, 7, 3, new BigDecimal("3.5"));
+        Post firstPost = savePost(author, platform, category, "대시보드 포스트1", 101, 10, 5, new BigDecimal("4.5"));
+        Post secondPost = savePost(author, platform, category, "대시보드 포스트2", 99, 7, 3, new BigDecimal("3.5"));
 
         StatsService.DashboardResponse response = statsService.dashboard();
         StatsService.DashboardData data = response.data();
@@ -103,14 +106,14 @@ class StatsServiceSection6Test {
     void userStats_returnsAuthorBasedAggregates() {
         Platform platform = ensurePlatform();
         Category category = ensureCategory();
-        AppUser author = saveUser("section6_user_stats_author");
-        AppUser viewer = saveUser("section6_user_stats_viewer");
+        AppUser author = saveUser("stats_user_stats_author");
+        AppUser viewer = saveUser("stats_user_stats_viewer");
 
-        Post p1 = savePost(author, platform, category, "사용자 통계 포스트1", 30, 0, 0, new BigDecimal("4.2"));
-        Post p2 = savePost(author, platform, category, "사용자 통계 포스트2", 20, 0, 0, new BigDecimal("3.8"));
+        Post firstPost = savePost(author, platform, category, "사용자 통계 포스트1", 30, 0, 0, new BigDecimal("4.2"));
+        Post secondPost = savePost(author, platform, category, "사용자 통계 포스트2", 20, 0, 0, new BigDecimal("3.8"));
 
-        saveInteraction(viewer, p1, true, true);
-        saveInteraction(viewer, p2, true, false);
+        saveInteraction(viewer, firstPost, true, true);
+        saveInteraction(viewer, secondPost, true, false);
 
         StatsService.UserStatsResponse response = statsService.userStats(author);
         StatsService.UserStatsData data = response.data();
@@ -126,8 +129,8 @@ class StatsServiceSection6Test {
     void dashboard_activeUsers_countsOnlyRecent30DaysAuthors() {
         Platform platform = ensurePlatform();
         Category category = ensureCategory();
-        AppUser recentAuthor = saveUser("section6_recent_author");
-        AppUser oldAuthor = saveUser("section6_old_author");
+        AppUser recentAuthor = saveUser("stats_recent_author");
+        AppUser oldAuthor = saveUser("stats_old_author");
 
         Post recentPost = savePost(recentAuthor, platform, category, "최근 작성글", 10, 1, 1, new BigDecimal("4.0"));
         Post oldPost = savePost(oldAuthor, platform, category, "오래된 작성글", 10, 1, 1, new BigDecimal("4.0"));
@@ -145,8 +148,8 @@ class StatsServiceSection6Test {
     void userStats_recentActivity_usesInteractionUpdatedAt() {
         Platform platform = ensurePlatform();
         Category category = ensureCategory();
-        AppUser author = saveUser("section6_recent_activity_author");
-        AppUser actor = saveUser("section6_recent_activity_actor");
+        AppUser author = saveUser("stats_recent_activity_author");
+        AppUser actor = saveUser("stats_recent_activity_actor");
 
         Post post = savePost(author, platform, category, "활동 기준 포스트", 12, 0, 0, new BigDecimal("4.0"));
         PostInteraction interaction = new PostInteraction();
@@ -192,8 +195,8 @@ class StatsServiceSection6Test {
         post.setPlatform(platform);
         post.setCategory(category);
         post.setTitle(title);
-        post.setPrompt("section6 stats prompt 본문입니다.");
-        post.setAiResponse("section6 stats ai response 본문입니다.");
+        post.setPrompt("stats prompt 본문입니다.");
+        post.setAiResponse("stats ai response 본문입니다.");
         post.setTags("tag1,tag2");
         post.setViewCount(views);
         post.setLikeCount(likes);
@@ -215,10 +218,10 @@ class StatsServiceSection6Test {
         return platformRepository.findByIsActiveTrueOrderByNameAsc().stream()
                 .findFirst()
                 .orElseGet(() -> {
-                    Platform p = new Platform();
-                    p.setName("section6_platform_" + UUID.randomUUID().toString().substring(0, 8));
-                    p.setActive(true);
-                    return platformRepository.save(p);
+                    Platform platform = new Platform();
+                    platform.setName("stats_platform_" + UUID.randomUUID().toString().substring(0, 8));
+                    platform.setActive(true);
+                    return platformRepository.save(platform);
                 });
     }
 
@@ -226,9 +229,9 @@ class StatsServiceSection6Test {
         return categoryRepository.findAllByOrderByNameAsc().stream()
                 .findFirst()
                 .orElseGet(() -> {
-                    Category c = new Category();
-                    c.setName("section6_category_" + UUID.randomUUID().toString().substring(0, 8));
-                    return categoryRepository.save(c);
+                    Category category = new Category();
+                    category.setName("stats_category_" + UUID.randomUUID().toString().substring(0, 8));
+                    return categoryRepository.save(category);
                 });
     }
 }

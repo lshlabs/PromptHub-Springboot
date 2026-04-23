@@ -1,5 +1,7 @@
 package com.lshlabs.prompthubspring.core;
 
+import org.junit.jupiter.api.Tag;
+
 import com.lshlabs.prompthubspring.auth.AuthTokenRepository;
 import com.lshlabs.prompthubspring.post.Category;
 import com.lshlabs.prompthubspring.post.CategoryRepository;
@@ -29,7 +31,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
 @ActiveProfiles("test")
-class CoreServiceSection6Test {
+@Tag("integration")
+class CoreServiceTest {
 
     @Autowired
     private CoreService coreService;
@@ -67,7 +70,7 @@ class CoreServiceSection6Test {
     void search_supportsFiltersAndSatisfactionRange() {
         Platform platform = ensurePlatform();
         Category category = ensureCategory();
-        AppUser author = saveUser("section6_search_author");
+        AppUser author = saveUser("core_search_author");
 
         savePost(author, platform, category, "검색테스트 제목 A", "태그A", new BigDecimal("4.8"));
         savePost(author, platform, category, "검색테스트 제목 B", "태그B", new BigDecimal("3.2"));
@@ -125,8 +128,8 @@ class CoreServiceSection6Test {
         post.setPlatform(platform);
         post.setCategory(category);
         post.setTitle(title);
-        post.setPrompt("section6 prompt 본문입니다.");
-        post.setAiResponse("section6 ai response 본문입니다.");
+        post.setPrompt("core prompt 본문입니다.");
+        post.setAiResponse("core ai response 본문입니다.");
         post.setTags(tags);
         post.setSatisfaction(satisfaction);
         return postRepository.save(post);
@@ -136,10 +139,10 @@ class CoreServiceSection6Test {
         return platformRepository.findByIsActiveTrueOrderByNameAsc().stream()
                 .findFirst()
                 .orElseGet(() -> {
-                    Platform p = new Platform();
-                    p.setName("section6_platform_" + UUID.randomUUID().toString().substring(0, 8));
-                    p.setActive(true);
-                    return platformRepository.save(p);
+                    Platform platform = new Platform();
+                    platform.setName("core_platform_" + UUID.randomUUID().toString().substring(0, 8));
+                    platform.setActive(true);
+                    return platformRepository.save(platform);
                 });
     }
 
@@ -147,9 +150,9 @@ class CoreServiceSection6Test {
         return categoryRepository.findAllByOrderByNameAsc().stream()
                 .findFirst()
                 .orElseGet(() -> {
-                    Category c = new Category();
-                    c.setName("section6_category_" + UUID.randomUUID().toString().substring(0, 8));
-                    return categoryRepository.save(c);
+                    Category category = new Category();
+                    category.setName("core_category_" + UUID.randomUUID().toString().substring(0, 8));
+                    return categoryRepository.save(category);
                 });
     }
 }

@@ -1,5 +1,7 @@
 package com.lshlabs.prompthubspring.core;
 
+import org.junit.jupiter.api.Tag;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,7 +29,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 })
 @AutoConfigureMockMvc(addFilters = false)
 @ActiveProfiles("test")
-class CoreTrendingCacheParityTest {
+@Tag("contract")
+@Tag("integration")
+class CoreTrendingCacheTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -54,7 +58,7 @@ class CoreTrendingCacheParityTest {
         TrendingRankingEntity ranking = new TrendingRankingEntity();
         ranking.setCategory(category);
         ranking.setRank(1);
-        ranking.setName("CacheParityModel");
+        ranking.setName("CacheModel");
         ranking.setScore("99.9");
         ranking.setProvider("TestProvider");
         ranking.setActive(true);

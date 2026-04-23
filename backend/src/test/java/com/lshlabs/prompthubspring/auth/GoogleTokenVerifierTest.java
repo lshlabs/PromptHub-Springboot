@@ -1,5 +1,7 @@
 package com.lshlabs.prompthubspring.auth;
 
+import org.junit.jupiter.api.Tag;
+
 import com.lshlabs.prompthubspring.common.ApiException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,7 +17,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
-
+@Tag("unit")
 class GoogleTokenVerifierTest {
 
     private MockRestServiceServer server;

@@ -1,5 +1,7 @@
 package com.lshlabs.prompthubspring.user;
 
+import org.junit.jupiter.api.Tag;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lshlabs.prompthubspring.auth.AuthToken;
 import com.lshlabs.prompthubspring.auth.AuthTokenRepository;
@@ -33,7 +35,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.jpa.hibernate.ddl-auto=create-drop"
 })
 @AutoConfigureMockMvc
-class UserControllerFlowTest {
+@Tag("integration")
+class UserControllerIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -71,21 +74,21 @@ class UserControllerFlowTest {
 
     @Test
     void authenticatedProfileSettingsInfoAndSessionsFlow_works() throws Exception {
-        AppUser me = createUser("me@example.com", "me");
-        me.setProfileImage("/media/profile/me.png");
-        userRepository.save(me);
-        String accessToken = issueAccessToken(me);
-        createActiveSession(me, "session-me-1", Instant.parse("2026-03-01T00:00:00Z"));
-        createActiveSession(me, "session-me-2", Instant.parse("2026-03-02T00:00:00Z"));
+        AppUser currentUser = createUser("me@example.com", "me");
+        currentUser.setProfileImage("/media/profile/me.png");
+        userRepository.save(currentUser);
+        String accessToken = issueAccessToken(currentUser);
+        createActiveSession(currentUser, "session-me-1", Instant.parse("2026-03-01T00:00:00Z"));
+        createActiveSession(currentUser, "session-me-2", Instant.parse("2026-03-02T00:00:00Z"));
 
-        mockMvc.perform(get("/api/auth/profile/")
+        mockMvc.perform(get("/api/auth/profile")
                         .header("Authorization", "Token " + accessToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.user.username").value("me"))
                 .andExpect(jsonPath("$.settings").exists())
                 .andExpect(jsonPath("$.profile_completeness").exists());
 
-        mockMvc.perform(patch("/api/auth/profile/")
+        mockMvc.perform(patch("/api/auth/profile")
                         .header("Authorization", "Token " + accessToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
@@ -99,7 +102,7 @@ class UserControllerFlowTest {
                 .andExpect(jsonPath("$.user.username").value("me-updated"))
                 .andExpect(jsonPath("$.user.github_handle").value("mehub"));
 
-        mockMvc.perform(patch("/api/auth/profile/settings/")
+        mockMvc.perform(patch("/api/auth/profile/settings")
                         .header("Authorization", "Token " + accessToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
@@ -110,10 +113,10 @@ class UserControllerFlowTest {
                 .andExpect(jsonPath("$.public_profile").value(false))
                 .andExpect(jsonPath("$.data_sharing").value(true));
 
-        mockMvc.perform(get("/api/auth/info/")
+                mockMvc.perform(get("/api/auth/info")
                         .header("Authorization", "Token " + accessToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(me.getId()))
+                .andExpect(jsonPath("$.id").value(currentUser.getId()))
                 .andExpect(jsonPath("$.email").value("me@example.com"))
                 .andExpect(jsonPath("$.username").value("me-updated"))
                 .andExpect(jsonPath("$.avatar_url").value("/media/profile/me.png"))
@@ -121,7 +124,7 @@ class UserControllerFlowTest {
                 .andExpect(jsonPath("$.avatar_color2").value("#222222"))
                 .andExpect(jsonPath("$.created_at").isNotEmpty());
 
-        mockMvc.perform(get("/api/auth/profile/sessions/")
+        mockMvc.perform(get("/api/auth/profile/sessions")
                         .header("Authorization", "Token " + accessToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].key").value("session-me-2"))
@@ -130,12 +133,12 @@ class UserControllerFlowTest {
 
     @Test
     void deletingOtherUsersSession_isRejected() throws Exception {
-        AppUser me = createUser("me@example.com", "me");
+        AppUser currentUser = createUser("me@example.com", "me");
         AppUser other = createUser("other@example.com", "other");
-        String accessToken = issueAccessToken(me);
+        String accessToken = issueAccessToken(currentUser);
         createActiveSession(other, "other-session-1", Instant.now());
 
-        mockMvc.perform(delete("/api/auth/profile/sessions/")
+        mockMvc.perform(delete("/api/auth/profile/sessions")
                         .header("Authorization", "Token " + accessToken)
                         .param("key", "other-session-1"))
                 .andExpect(status().isNotFound())
@@ -144,10 +147,10 @@ class UserControllerFlowTest {
 
     @Test
     void summary_returnsFrontendContractFields() throws Exception {
-        AppUser me = createUser("me@example.com", "me");
-        String accessToken = issueAccessToken(me);
+        AppUser currentUser = createUser("me@example.com", "me");
+        String accessToken = issueAccessToken(currentUser);
 
-        mockMvc.perform(get("/api/auth/users/me/summary/")
+        mockMvc.perform(get("/api/auth/users/me/summary")
                         .header("Authorization", "Token " + accessToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasKey("username")))
@@ -159,28 +162,28 @@ class UserControllerFlowTest {
 
     @Test
     void deleteAccount_removesUserAndBlocksFollowUpProfileAccess() throws Exception {
-        AppUser me = createUser("me@example.com", "me");
-        String accessToken = issueAccessToken(me);
-        createActiveSession(me, "session-me-1", Instant.now());
-        createSettings(me);
+        AppUser currentUser = createUser("me@example.com", "me");
+        String accessToken = issueAccessToken(currentUser);
+        createActiveSession(currentUser, "session-me-1", Instant.now());
+        createSettings(currentUser);
 
-        mockMvc.perform(delete("/api/auth/profile/delete/")
+        mockMvc.perform(delete("/api/auth/profile/delete")
                         .header("Authorization", "Token " + accessToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("계정이 삭제되었습니다."));
 
-        mockMvc.perform(get("/api/auth/profile/")
+        mockMvc.perform(get("/api/auth/profile")
                         .header("Authorization", "Token " + accessToken))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void endOtherSessions_matchesCompatibilityMessageAndCount() throws Exception {
-        AppUser me = createUser("multi@example.com", "multi");
-        String accessToken = issueAccessToken(me);
-        createActiveSession(me, "session-me-1", Instant.parse("2026-03-01T00:00:00Z"));
-        createActiveSession(me, "session-me-2", Instant.parse("2026-03-02T00:00:00Z"));
-        createActiveSession(me, "session-me-3", Instant.parse("2026-03-03T00:00:00Z"));
+        AppUser currentUser = createUser("multi@example.com", "multi");
+        String accessToken = issueAccessToken(currentUser);
+        createActiveSession(currentUser, "session-me-1", Instant.parse("2026-03-01T00:00:00Z"));
+        createActiveSession(currentUser, "session-me-2", Instant.parse("2026-03-02T00:00:00Z"));
+        createActiveSession(currentUser, "session-me-3", Instant.parse("2026-03-03T00:00:00Z"));
 
         mockMvc.perform(delete("/api/auth/profile/sessions")
                         .header("Authorization", "Token " + accessToken)

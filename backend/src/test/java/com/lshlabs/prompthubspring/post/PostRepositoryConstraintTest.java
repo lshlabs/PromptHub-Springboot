@@ -1,5 +1,7 @@
 package com.lshlabs.prompthubspring.post;
 
+import org.junit.jupiter.api.Tag;
+
 import com.lshlabs.prompthubspring.user.AppUser;
 import com.lshlabs.prompthubspring.user.AppUserRepository;
 import com.lshlabs.prompthubspring.user.UserSessionRepository;
@@ -16,6 +18,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @DataJpaTest
+@Tag("integration")
 class PostRepositoryConstraintTest {
 
     @Autowired

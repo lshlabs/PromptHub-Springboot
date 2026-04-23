@@ -1,5 +1,7 @@
 package com.lshlabs.prompthubspring.auth;
 
+import org.junit.jupiter.api.Tag;
+
 import com.lshlabs.prompthubspring.common.ApiException;
 import com.lshlabs.prompthubspring.user.AppUser;
 import com.lshlabs.prompthubspring.user.AppUserRepository;
@@ -28,6 +30,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@Tag("unit")
 class AuthServiceRefreshTest {
 
     @Mock

@@ -1,5 +1,7 @@
 package com.lshlabs.prompthubspring.post;
 
+import org.junit.jupiter.api.Tag;
+
 import com.lshlabs.prompthubspring.user.AppUser;
 import com.lshlabs.prompthubspring.user.AppUserRepository;
 import org.junit.jupiter.api.Test;
@@ -17,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @DataJpaTest
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
+@Tag("integration")
 class PostInteractionOrderingRepositoryTest {
 
     @Autowired
@@ -32,7 +35,7 @@ class PostInteractionOrderingRepositoryTest {
 
     @Test
     void likedOrdering_matchesLegacyInteractionUpdatedAtDesc() {
-        AppUser me = saveUser("me");
+        AppUser currentUser = saveUser("me");
         AppUser author = saveUser("author");
         Platform platform = savePlatform("OpenAI");
         Category category = saveCategory("검증");
@@ -41,11 +44,11 @@ class PostInteractionOrderingRepositoryTest {
         Post olderPost = savePost(author, platform, category, "older");
 
         // Insert order intentionally opposite to updated_at order.
-        PostInteraction older = saveInteraction(me, olderPost, true, false, Instant.parse("2026-02-01T00:00:00Z"));
-        PostInteraction newer = saveInteraction(me, newerPost, true, false, Instant.parse("2026-03-01T00:00:00Z"));
+        PostInteraction older = saveInteraction(currentUser, olderPost, true, false, Instant.parse("2026-02-01T00:00:00Z"));
+        PostInteraction newer = saveInteraction(currentUser, newerPost, true, false, Instant.parse("2026-03-01T00:00:00Z"));
 
         var page = postInteractionRepository.findByUserAndLikedTrueOrderByUpdatedAtDescIdDesc(
-                me,
+                currentUser,
                 PageRequest.of(0, 20)
         );
 
@@ -56,20 +59,20 @@ class PostInteractionOrderingRepositoryTest {
 
     @Test
     void bookmarkedOrdering_tiebreaksByIdDesc_whenUpdatedAtSame() {
-        AppUser me = saveUser("me2");
+        AppUser currentUser = saveUser("me2");
         AppUser author = saveUser("author2");
         Platform platform = savePlatform("Anthropic");
         Category category = saveCategory("동률검증");
 
-        Post p1 = savePost(author, platform, category, "p1");
-        Post p2 = savePost(author, platform, category, "p2");
+        Post firstPost = savePost(author, platform, category, "p1");
+        Post secondPost = savePost(author, platform, category, "p2");
         Instant sameTime = Instant.parse("2026-03-10T00:00:00Z");
 
-        PostInteraction first = saveInteraction(me, p1, false, true, sameTime);
-        PostInteraction second = saveInteraction(me, p2, false, true, sameTime);
+        PostInteraction first = saveInteraction(currentUser, firstPost, false, true, sameTime);
+        PostInteraction second = saveInteraction(currentUser, secondPost, false, true, sameTime);
 
         var page = postInteractionRepository.findByUserAndBookmarkedTrueOrderByUpdatedAtDescIdDesc(
-                me,
+                currentUser,
                 PageRequest.of(0, 20)
         );
 

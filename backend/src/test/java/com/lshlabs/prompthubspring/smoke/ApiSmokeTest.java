@@ -1,5 +1,7 @@
 package com.lshlabs.prompthubspring.smoke;
 
+import org.junit.jupiter.api.Tag;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lshlabs.prompthubspring.post.AiModel;
@@ -32,7 +34,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-class Section7ApiSmokeTest {
+@Tag("smoke")
+class ApiSmokeTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -49,30 +52,34 @@ class Section7ApiSmokeTest {
     void criticalFrontendFlow_login_list_detail_like_bookmark_smoke() throws Exception {
         String writerEmail = "writer_" + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
         String writerPassword = "P@ssword123!";
-        String writerToken = registerAndGetAccessToken(writerEmail, writerPassword);
+        String writerToken = registerAndGetToken(writerEmail, writerPassword);
 
         String viewerEmail = "viewer_" + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
         String viewerPassword = "P@ssword123!";
-        String viewerToken = registerAndGetAccessToken(viewerEmail, viewerPassword);
+        String viewerToken = registerAndGetToken(viewerEmail, viewerPassword);
 
-        Platform platform = platformRepository.findByIsActiveTrueOrderByNameAsc().stream().findFirst().orElseThrow();
-        Category category = categoryRepository.findAllByOrderByNameAsc().stream().findFirst().orElseThrow();
+        Platform platform = platformRepository.findByIsActiveTrueOrderByNameAsc().stream()
+                .findFirst()
+                .orElseGet(this::createSmokePlatform);
+        Category category = categoryRepository.findAllByOrderByNameAsc().stream()
+                .findFirst()
+                .orElseGet(this::createSmokeCategory);
         AiModel model = aiModelRepository
                 .findByPlatformIdAndIsActiveTrueAndIsDeprecatedFalseOrderBySortOrderAscNameAsc(platform.getId())
-                .stream().findFirst().orElse(null);
+                .stream().findFirst().orElseGet(() -> createSmokeModel(platform));
 
         Map<String, Object> createPayload = new HashMap<>();
-        createPayload.put("title", "Section7 Smoke 게시글");
+        createPayload.put("title", "API Smoke 게시글");
         createPayload.put("platform", platform.getId());
         createPayload.put("model", model == null ? null : model.getId());
         createPayload.put("category", category.getId());
-        createPayload.put("tags", java.util.List.of("smoke", "section7"));
+        createPayload.put("tags", java.util.List.of("smoke", "api"));
         createPayload.put("satisfaction", 4.5);
-        createPayload.put("prompt", "section7 smoke prompt 본문입니다.");
-        createPayload.put("ai_response", "section7 smoke ai response 본문입니다.");
-        createPayload.put("additional_opinion", "section7 smoke additional opinion");
+        createPayload.put("prompt", "api smoke prompt 본문입니다.");
+        createPayload.put("ai_response", "api smoke ai response 본문입니다.");
+        createPayload.put("additional_opinion", "api smoke additional opinion");
 
-        MvcResult createResult = mockMvc.perform(post("/api/posts/create/")
+        MvcResult createResult = mockMvc.perform(post("/api/posts/create")
                         .header("Authorization", "Token " + writerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createPayload)))
@@ -85,7 +92,7 @@ class Section7ApiSmokeTest {
             postId = created.path("id").asLong(-1);
         }
 
-        MvcResult listResult = mockMvc.perform(get("/api/posts/")
+        MvcResult listResult = mockMvc.perform(get("/api/posts")
                         .param("page", "1")
                         .param("page_size", "20"))
                 .andExpect(status().isOk())
@@ -96,32 +103,32 @@ class Section7ApiSmokeTest {
         }
         assertTrue(postId > 0);
 
-        mockMvc.perform(get("/api/posts/{id}/", postId))
+        mockMvc.perform(get("/api/posts/{id}", postId))
                 .andExpect(status().isOk());
 
-        MvcResult likeResult = mockMvc.perform(post("/api/posts/{id}/like/", postId)
+        MvcResult likeResult = mockMvc.perform(post("/api/posts/{id}/like", postId)
                         .header("Authorization", "Token " + viewerToken))
                 .andExpect(status().isOk())
                 .andReturn();
         JsonNode likeJson = objectMapper.readTree(likeResult.getResponse().getContentAsString());
         assertTrue(likeJson.path("data").path("is_liked").asBoolean());
 
-        MvcResult bookmarkResult = mockMvc.perform(post("/api/posts/{id}/bookmark/", postId)
+        MvcResult bookmarkResult = mockMvc.perform(post("/api/posts/{id}/bookmark", postId)
                         .header("Authorization", "Token " + viewerToken))
                 .andExpect(status().isOk())
                 .andReturn();
         JsonNode bookmarkJson = objectMapper.readTree(bookmarkResult.getResponse().getContentAsString());
         assertTrue(bookmarkJson.path("data").path("is_bookmarked").asBoolean());
 
-        mockMvc.perform(get("/api/posts/liked-posts/")
+        mockMvc.perform(get("/api/posts/liked-posts")
                         .header("Authorization", "Token " + viewerToken))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(get("/api/posts/bookmarked-posts/")
+        mockMvc.perform(get("/api/posts/bookmarked-posts")
                         .header("Authorization", "Token " + viewerToken))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(get("/api/stats/dashboard/")
+        mockMvc.perform(get("/api/stats/dashboard")
                         .header("Authorization", "Token " + viewerToken))
                 .andExpect(status().isOk());
     }
@@ -160,7 +167,7 @@ class Section7ApiSmokeTest {
         assertNotEquals(refresh, refreshJson.path("refresh").asText(), "refresh rotation should return a new token");
     }
 
-    private String registerAndGetAccessToken(String email, String password) throws Exception {
+    private String registerAndGetToken(String email, String password) throws Exception {
         MvcResult result = mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -178,5 +185,30 @@ class Section7ApiSmokeTest {
         assertNotNull(token);
         assertTrue(!token.isBlank());
         return token;
+    }
+
+    private Platform createSmokePlatform() {
+        Platform platform = new Platform();
+        platform.setName("SmokePlatform-" + UUID.randomUUID().toString().substring(0, 8));
+        platform.setSlug("smoke-platform");
+        platform.setActive(true);
+        return platformRepository.save(platform);
+    }
+
+    private Category createSmokeCategory() {
+        Category category = new Category();
+        category.setName("SmokeCategory-" + UUID.randomUUID().toString().substring(0, 8));
+        return categoryRepository.save(category);
+    }
+
+    private AiModel createSmokeModel(Platform platform) {
+        AiModel model = new AiModel();
+        model.setPlatform(platform);
+        model.setName("SmokeModel-" + UUID.randomUUID().toString().substring(0, 8));
+        model.setSlug("smoke-model");
+        model.setActive(true);
+        model.setDeprecated(false);
+        model.setSortOrder(1);
+        return aiModelRepository.save(model);
     }
 }

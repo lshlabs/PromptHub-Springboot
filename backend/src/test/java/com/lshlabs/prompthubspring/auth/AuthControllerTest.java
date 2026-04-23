@@ -1,5 +1,7 @@
 package com.lshlabs.prompthubspring.auth;
 
+import org.junit.jupiter.api.Tag;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lshlabs.prompthubspring.common.ApiException;
 import com.lshlabs.prompthubspring.common.GlobalExceptionHandler;
@@ -30,6 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(AuthController.class)
 @AutoConfigureMockMvc(addFilters = false)
 @Import(GlobalExceptionHandler.class)
+@Tag("unit")
 class AuthControllerTest {
 
     @Autowired

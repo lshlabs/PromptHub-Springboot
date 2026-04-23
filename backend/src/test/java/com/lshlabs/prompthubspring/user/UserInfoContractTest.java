@@ -1,5 +1,7 @@
 package com.lshlabs.prompthubspring.user;
 
+import org.junit.jupiter.api.Tag;
+
 import com.lshlabs.prompthubspring.auth.AuthToken;
 import com.lshlabs.prompthubspring.auth.AuthTokenRepository;
 import com.lshlabs.prompthubspring.auth.AuthTokenType;
@@ -28,7 +30,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 })
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-class UserInfoContractParityTest {
+@Tag("integration")
+class UserInfoContractTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -61,7 +64,7 @@ class UserInfoContractParityTest {
         token.setExpiresAt(Instant.now().plusSeconds(3600));
         token = authTokenRepository.save(token);
 
-        mockMvc.perform(get("/api/auth/info/")
+        mockMvc.perform(get("/api/auth/info")
                         .header("Authorization", "Token " + token.getToken()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(user.getId()))
@@ -90,7 +93,7 @@ class UserInfoContractParityTest {
         token.setExpiresAt(Instant.now().plusSeconds(3600));
         token = authTokenRepository.save(token);
 
-        mockMvc.perform(get("/api/auth/info/")
+        mockMvc.perform(get("/api/auth/info")
                         .header("Authorization", "Token " + token.getToken()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.avatar_url").value(nullValue()))
@@ -100,7 +103,7 @@ class UserInfoContractParityTest {
 
     @Test
     void userInfo_requiresAuthentication() throws Exception {
-        mockMvc.perform(get("/api/auth/info/"))
+        mockMvc.perform(get("/api/auth/info"))
                 .andExpect(status().isForbidden());
     }
 }

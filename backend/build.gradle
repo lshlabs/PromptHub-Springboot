@@ -49,5 +49,49 @@ dependencies {
 }
 
 tasks.named('test') {
-	useJUnitPlatform()
+	// 기본 CI/로컬에서는 안정 세트만 실행
+	// (계약/성능/스모크는 별도 태스크로 분리)
+	useJUnitPlatform {
+		excludeTags 'contract', 'performance', 'smoke', 'container'
+	}
+}
+
+tasks.register('unitTest', Test) {
+	group = 'verification'
+	description = 'Runs unit tests only'
+	useJUnitPlatform {
+		includeTags 'unit'
+	}
+}
+
+tasks.register('integrationTest', Test) {
+	group = 'verification'
+	description = 'Runs integration tests only'
+	useJUnitPlatform {
+		includeTags 'integration'
+	}
+}
+
+tasks.register('contractTest', Test) {
+	group = 'verification'
+	description = 'Runs contract/parity tests only'
+	useJUnitPlatform {
+		includeTags 'contract'
+	}
+}
+
+tasks.register('smokeTest', Test) {
+	group = 'verification'
+	description = 'Runs smoke tests only'
+	useJUnitPlatform {
+		includeTags 'smoke'
+	}
+}
+
+tasks.register('performanceTest', Test) {
+	group = 'verification'
+	description = 'Runs performance tests only'
+	useJUnitPlatform {
+		includeTags 'performance'
+	}
 }

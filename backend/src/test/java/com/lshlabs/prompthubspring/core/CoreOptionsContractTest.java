@@ -1,5 +1,7 @@
 package com.lshlabs.prompthubspring.core;
 
+import org.junit.jupiter.api.Tag;
+
 import com.lshlabs.prompthubspring.auth.AuthTokenRepository;
 import com.lshlabs.prompthubspring.post.AiModel;
 import com.lshlabs.prompthubspring.post.AiModelRepository;
@@ -40,7 +42,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.jpa.hibernate.ddl-auto=create-drop"
 })
 @AutoConfigureMockMvc(addFilters = false)
-class CoreOptionsContractParityTest {
+@Tag("contract")
+@Tag("integration")
+class CoreOptionsContractTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -78,12 +82,12 @@ class CoreOptionsContractParityTest {
 
     @Test
     void sortAndFilterOptions_matchCompatibilityContractShape() throws Exception {
-        Platform p1 = savePlatform("OpenAI_" + System.nanoTime());
-        Platform p2 = savePlatform("Anthropic_" + System.nanoTime());
+        Platform openAiPlatform = savePlatform("OpenAI_" + System.nanoTime());
+        Platform anthropicPlatform = savePlatform("Anthropic_" + System.nanoTime());
         saveCategory("코딩/프로그래밍_" + System.nanoTime());
         saveCategory("기타_" + System.nanoTime());
-        saveModel(p1, "GPT-5.2");
-        saveModel(p2, "Claude Sonnet 4.6");
+        saveModel(openAiPlatform, "GPT-5.2");
+        saveModel(anthropicPlatform, "Claude Sonnet 4.6");
 
         mockMvc.perform(get("/api/core/sort-options/"))
                 .andExpect(status().isOk())
@@ -107,9 +111,9 @@ class CoreOptionsContractParityTest {
 
         Map<String, List<Map<String, Object>>> modelsByPlatform =
                 JsonPath.read(filterResult.getResponse().getContentAsString(), "$.models_by_platform");
-        assertTrue(modelsByPlatform.containsKey(p1.getName()));
-        assertFalse(modelsByPlatform.get(p1.getName()).isEmpty());
-        Map<String, Object> firstModel = modelsByPlatform.get(p1.getName()).get(0);
+        assertTrue(modelsByPlatform.containsKey(openAiPlatform.getName()));
+        assertFalse(modelsByPlatform.get(openAiPlatform.getName()).isEmpty());
+        Map<String, Object> firstModel = modelsByPlatform.get(openAiPlatform.getName()).get(0);
         assertTrue(firstModel.containsKey("id"));
         assertTrue(firstModel.containsKey("name"));
         assertTrue(firstModel.containsKey("platform_id"));
@@ -117,16 +121,16 @@ class CoreOptionsContractParityTest {
     }
 
     private Platform savePlatform(String name) {
-        Platform p = new Platform();
-        p.setName(name);
-        p.setActive(true);
-        return platformRepository.save(p);
+        Platform platform = new Platform();
+        platform.setName(name);
+        platform.setActive(true);
+        return platformRepository.save(platform);
     }
 
     private Category saveCategory(String name) {
-        Category c = new Category();
-        c.setName(name);
-        return categoryRepository.save(c);
+        Category category = new Category();
+        category.setName(name);
+        return categoryRepository.save(category);
     }
 
     private void saveModel(Platform platform, String modelName) {

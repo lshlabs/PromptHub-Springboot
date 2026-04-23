@@ -1,5 +1,7 @@
 package com.lshlabs.prompthubspring.post;
 
+import org.junit.jupiter.api.Tag;
+
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import org.junit.jupiter.api.Test;
@@ -9,7 +11,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
+@Tag("unit")
 class PostUpsertRequestValidationTest {
 
     private final Validator validator = Validation.buildDefaultValidatorFactory().getValidator();

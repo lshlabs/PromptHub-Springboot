@@ -1,5 +1,7 @@
 package com.lshlabs.prompthubspring.entity;
 
+import org.junit.jupiter.api.Tag;
+
 import com.lshlabs.prompthubspring.core.TrendingCategoryEntity;
 import com.lshlabs.prompthubspring.core.TrendingCategoryRepository;
 import com.lshlabs.prompthubspring.core.TrendingRankingEntity;
@@ -17,7 +19,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @DataJpaTest
-class EntityConstraintParityTest {
+@Tag("contract")
+class EntityConstraintTest {
 
     @Autowired
     private PlatformRepository platformRepository;

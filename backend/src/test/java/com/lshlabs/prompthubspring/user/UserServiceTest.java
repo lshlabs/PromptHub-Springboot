@@ -1,5 +1,7 @@
 package com.lshlabs.prompthubspring.user;
 
+import org.junit.jupiter.api.Tag;
+
 import com.lshlabs.prompthubspring.common.ApiException;
 import com.lshlabs.prompthubspring.common.CloudinaryService;
 import com.lshlabs.prompthubspring.auth.AuthService;
@@ -24,6 +26,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@Tag("unit")
 class UserServiceTest {
 
     @Mock
@@ -79,33 +82,33 @@ class UserServiceTest {
 
     @Test
     void endSession_throwsNotFound_whenSessionNotOwnedByCurrentUser() {
-        AppUser me = new AppUser();
-        me.setEmail("me@example.com");
-        me.setUsername("me");
+        AppUser currentUser = new AppUser();
+        currentUser.setEmail("me@example.com");
+        currentUser.setUsername("me");
 
-        when(userSessionRepository.findBySessionKeyAndUserAndRevokedAtIsNull("other-user-session", me))
+        when(userSessionRepository.findBySessionKeyAndUserAndRevokedAtIsNull("other-user-session", currentUser))
                 .thenReturn(Optional.empty());
 
         ApiException exception = assertThrows(ApiException.class,
-                () -> userService.endSession(me, "other-user-session"));
+                () -> userService.endSession(currentUser, "other-user-session"));
 
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
     }
 
     @Test
     void endSession_revokesTargetSession() {
-        AppUser me = new AppUser();
-        me.setEmail("me@example.com");
-        me.setUsername("me");
+        AppUser currentUser = new AppUser();
+        currentUser.setEmail("me@example.com");
+        currentUser.setUsername("me");
         UserSession session = new UserSession();
-        session.setUser(me);
+        session.setUser(currentUser);
         session.setSessionKey("session-1");
 
-        when(userSessionRepository.findBySessionKeyAndUserAndRevokedAtIsNull("session-1", me))
+        when(userSessionRepository.findBySessionKeyAndUserAndRevokedAtIsNull("session-1", currentUser))
                 .thenReturn(Optional.of(session));
         when(userSessionRepository.save(any(UserSession.class))).thenReturn(session);
 
-        UserService.MessageResponse result = userService.endSession(me, "session-1");
+        UserService.MessageResponse result = userService.endSession(currentUser, "session-1");
 
         assertEquals("세션이 종료되었습니다.", result.message());
         verify(userSessionRepository).save(session);
@@ -113,12 +116,12 @@ class UserServiceTest {
 
     @Test
     void endOtherSessions_returnsRevokedCount() {
-        AppUser me = new AppUser();
-        me.setEmail("me@example.com");
-        me.setUsername("me");
+        AppUser currentUser = new AppUser();
+        currentUser.setEmail("me@example.com");
+        currentUser.setUsername("me");
         when(userSessionRepository.revokeOtherActiveSessions(any(), any(), any(Instant.class))).thenReturn(2);
 
-        UserService.EndOtherSessionsResponse result = userService.endOtherSessions(me, "current-session");
+        UserService.EndOtherSessionsResponse result = userService.endOtherSessions(currentUser, "current-session");
 
         assertEquals("다른 모든 세션을 종료했습니다.", result.message());
         assertEquals(2, result.count());
@@ -126,39 +129,39 @@ class UserServiceTest {
 
     @Test
     void deleteAccount_removesUserRelatedRowsBeforeDeletingUser() {
-        AppUser me = new AppUser();
-        me.setEmail("me@example.com");
-        me.setUsername("me");
+        AppUser currentUser = new AppUser();
+        currentUser.setEmail("me@example.com");
+        currentUser.setUsername("me");
 
-        UserService.MessageResponse result = userService.deleteAccount(me);
+        UserService.MessageResponse result = userService.deleteAccount(currentUser);
 
         assertEquals("계정이 삭제되었습니다.", result.message());
-        verify(authTokenRepository).deleteByUser(me);
-        verify(userSessionRepository).deleteByUser(me);
-        verify(userSettingsRepository).deleteByUser(me);
-        verify(userRepository).deleteById(me.getId());
+        verify(authTokenRepository).deleteByUser(currentUser);
+        verify(userSessionRepository).deleteByUser(currentUser);
+        verify(userSettingsRepository).deleteByUser(currentUser);
+        verify(userRepository).deleteById(currentUser.getId());
     }
 
     @Test
     void changePassword_rotatesTokensAndReturnsNewPair() {
-        AppUser me = new AppUser();
-        me.setEmail("me@example.com");
-        me.setUsername("me");
-        me.setPassword("encoded-old");
+        AppUser currentUser = new AppUser();
+        currentUser.setEmail("me@example.com");
+        currentUser.setUsername("me");
+        currentUser.setPassword("encoded-old");
 
         when(passwordEncoder.matches("OldPass!1", "encoded-old")).thenReturn(true);
         when(passwordEncoder.encode("NewPass!2")).thenReturn("encoded-new");
-        when(authService.rotateTokenPair(me))
+        when(authService.rotateTokenPair(currentUser))
                 .thenReturn(new AuthService.TokenPair("new-access-token", "new-refresh-token"));
 
-        UserService.ChangePasswordResponse result = userService.changePassword(me, "OldPass!1", "NewPass!2",
+        UserService.ChangePasswordResponse result = userService.changePassword(currentUser, "OldPass!1", "NewPass!2",
                 "NewPass!2");
 
         assertEquals("비밀번호가 성공적으로 변경되었습니다.", result.message());
         assertEquals("new-access-token", result.token());
         assertEquals("new-refresh-token", result.refresh());
-        verify(userRepository).save(me);
-        verify(authService).rotateTokenPair(me);
+        verify(userRepository).save(currentUser);
+        verify(authService).rotateTokenPair(currentUser);
     }
 
     @Test

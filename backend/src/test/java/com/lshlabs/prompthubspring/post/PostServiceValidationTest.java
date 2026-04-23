@@ -1,5 +1,7 @@
 package com.lshlabs.prompthubspring.post;
 
+import org.junit.jupiter.api.Tag;
+
 import com.lshlabs.prompthubspring.common.ApiException;
 import com.lshlabs.prompthubspring.user.AppUser;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,6 +23,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@Tag("unit")
 class PostServiceValidationTest {
 
     @Mock
@@ -282,36 +285,36 @@ class PostServiceValidationTest {
     }
 
     private Platform platform(Long id, String name, boolean active) {
-        Platform p = new Platform();
-        ReflectionTestUtils.setField(p, "id", id);
-        p.setName(name);
-        p.setActive(active);
-        return p;
+        Platform platform = new Platform();
+        ReflectionTestUtils.setField(platform, "id", id);
+        platform.setName(name);
+        platform.setActive(active);
+        return platform;
     }
 
     private Category category(Long id, String name) {
-        Category c = new Category();
-        ReflectionTestUtils.setField(c, "id", id);
-        c.setName(name);
-        return c;
+        Category category = new Category();
+        ReflectionTestUtils.setField(category, "id", id);
+        category.setName(name);
+        return category;
     }
 
     private AiModel model(Long id, String name, Platform platform, boolean active, boolean deprecated) {
-        AiModel m = new AiModel();
-        ReflectionTestUtils.setField(m, "id", id);
-        m.setName(name);
-        m.setPlatform(platform);
-        m.setActive(active);
-        m.setDeprecated(deprecated);
-        return m;
+        AiModel model = new AiModel();
+        ReflectionTestUtils.setField(model, "id", id);
+        model.setName(name);
+        model.setPlatform(platform);
+        model.setActive(active);
+        model.setDeprecated(deprecated);
+        return model;
     }
 
     private AppUser user(Long id, String username) {
-        AppUser u = new AppUser();
-        ReflectionTestUtils.setField(u, "id", id);
-        u.setUsername(username);
-        u.setEmail(username + "@example.com");
-        u.setPassword("encoded");
-        return u;
+        AppUser user = new AppUser();
+        ReflectionTestUtils.setField(user, "id", id);
+        user.setUsername(username);
+        user.setEmail(username + "@example.com");
+        user.setPassword("encoded");
+        return user;
     }
 }

@@ -1,5 +1,7 @@
 package com.lshlabs.prompthubspring.core;
 
+import org.junit.jupiter.api.Tag;
+
 import com.jayway.jsonpath.JsonPath;
 import com.lshlabs.prompthubspring.auth.AuthTokenRepository;
 import com.lshlabs.prompthubspring.post.*;
@@ -39,7 +41,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 })
 @AutoConfigureMockMvc(addFilters = false)
 @ActiveProfiles("test")
-class CoreSearchContractParityTest {
+@Tag("contract")
+@Tag("integration")
+class CoreSearchContractTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -81,26 +85,26 @@ class CoreSearchContractParityTest {
         AppUser authorMatch = saveUser("core_writer_keyword");
         AppUser authorOther = saveUser("core_other");
 
-        Platform p1 = savePlatform("OpenAI");
-        Platform p2 = savePlatform("Anthropic");
-        Category cNormal = saveCategory("일반");
-        Category cEtc = saveCategory("기타");
-        AiModel mNormal = saveModel(p1, "GPT");
-        AiModel mEtc = saveModel(p1, "기타");
+        Platform openAiPlatform = savePlatform("OpenAI");
+        Platform anthropicPlatform = savePlatform("Anthropic");
+        Category generalCategory = saveCategory("일반");
+        Category etcCategory = saveCategory("기타");
+        AiModel defaultModel = saveModel(openAiPlatform, "GPT");
+        AiModel etcModel = saveModel(openAiPlatform, "기타");
 
-        Post titlePost = savePost(authorOther, p1, cNormal, mNormal, "Core Alpha title",
+        Post titlePost = savePost(authorOther, openAiPlatform, generalCategory, defaultModel, "Core Alpha title",
                 "prompt body", "ai body", null, null,
                 10, 2, 1, new BigDecimal("3.5"), Instant.now().minus(1, ChronoUnit.DAYS));
-        Post contentPost = savePost(authorOther, p1, cNormal, mNormal, "Core Beta",
+        Post contentPost = savePost(authorOther, openAiPlatform, generalCategory, defaultModel, "Core Beta",
                 "needle-content in prompt", "ai body", null, null,
                 30, 5, 3, new BigDecimal("5.0"), Instant.now().minus(2, ChronoUnit.DAYS));
-        Post authorPost = savePost(authorMatch, p2, cNormal, mNormal, "Core Gamma",
+        Post authorPost = savePost(authorMatch, anthropicPlatform, generalCategory, defaultModel, "Core Gamma",
                 "prompt body", "ai body", null, null,
                 5, 1, 0, new BigDecimal("4.0"), Instant.now().minus(3, ChronoUnit.DAYS));
-        Post etcCategoryPost = savePost(authorOther, p1, cEtc, mNormal, "Core Etc Category",
+        Post etcCategoryPost = savePost(authorOther, openAiPlatform, etcCategory, defaultModel, "Core Etc Category",
                 "prompt body", "ai body", null, "custom-category",
                 1, 0, 0, new BigDecimal("2.0"), Instant.now().minus(4, ChronoUnit.DAYS));
-        Post etcModelPost = savePost(authorOther, p1, cNormal, mEtc, "Core Etc Model",
+        Post etcModelPost = savePost(authorOther, openAiPlatform, generalCategory, etcModel, "Core Etc Model",
                 "prompt body", "ai body", "custom-model", null,
                 1, 0, 0, new BigDecimal("2.5"), Instant.now().minus(5, ChronoUnit.DAYS));
 
@@ -188,7 +192,7 @@ class CoreSearchContractParityTest {
         assertEquals(contentPost.getId().intValue(), ((Number) viewsResults.get(0).get("id")).intValue());
 
         MvcResult categoryFilter = mockMvc.perform(get("/api/core/search/")
-                        .param("categories", cEtc.getId().toString()))
+                        .param("categories", etcCategory.getId().toString()))
                 .andExpect(status().isOk())
                 .andReturn();
         List<Map<String, Object>> categoryResults = JsonPath.read(categoryFilter.getResponse().getContentAsString(), "$.results");
@@ -196,7 +200,7 @@ class CoreSearchContractParityTest {
         assertEquals(etcCategoryPost.getId().intValue(), ((Number) categoryResults.get(0).get("id")).intValue());
 
         MvcResult multiCategoryFilter = mockMvc.perform(get("/api/core/search/")
-                        .param("categories", cNormal.getId() + "," + cEtc.getId()))
+                        .param("categories", generalCategory.getId() + "," + etcCategory.getId()))
                 .andExpect(status().isOk())
                 .andReturn();
         Integer multiCategoryTotalCount = JsonPath.read(
@@ -204,7 +208,7 @@ class CoreSearchContractParityTest {
         assertTrue(multiCategoryTotalCount >= 5);
 
         MvcResult modelFilter = mockMvc.perform(get("/api/core/search/")
-                        .param("models", mEtc.getId().toString()))
+                        .param("models", etcModel.getId().toString()))
                 .andExpect(status().isOk())
                 .andReturn();
         List<Map<String, Object>> modelResults = JsonPath.read(modelFilter.getResponse().getContentAsString(), "$.results");
@@ -212,7 +216,7 @@ class CoreSearchContractParityTest {
         assertEquals(etcModelPost.getId().intValue(), ((Number) modelResults.get(0).get("id")).intValue());
 
         MvcResult multiModelFilter = mockMvc.perform(get("/api/core/search/")
-                        .param("models", mNormal.getId() + "," + mEtc.getId()))
+                        .param("models", defaultModel.getId() + "," + etcModel.getId()))
                 .andExpect(status().isOk())
                 .andReturn();
         Integer multiModelTotalCount = JsonPath.read(
@@ -220,7 +224,7 @@ class CoreSearchContractParityTest {
         assertTrue(multiModelTotalCount >= 5);
 
         MvcResult platformFilter = mockMvc.perform(get("/api/core/search/")
-                        .param("platforms", p2.getId().toString()))
+                        .param("platforms", anthropicPlatform.getId().toString()))
                 .andExpect(status().isOk())
                 .andReturn();
         List<Map<String, Object>> platformResults = JsonPath.read(platformFilter.getResponse().getContentAsString(), "$.results");
@@ -229,14 +233,14 @@ class CoreSearchContractParityTest {
 
         // 하위 호환 alias: platform/category 단일 파라미터도 동작
         MvcResult singleAlias = mockMvc.perform(get("/api/core/search/")
-                        .param("platform", p2.getId().toString())
-                        .param("category", cNormal.getId().toString()))
+                        .param("platform", anthropicPlatform.getId().toString())
+                        .param("category", generalCategory.getId().toString()))
                 .andExpect(status().isOk())
                 .andReturn();
         List<Map<String, Object>> aliasResults = JsonPath.read(singleAlias.getResponse().getContentAsString(), "$.results");
         assertTrue(aliasResults.stream().allMatch(row ->
-                ((Number) row.get("platformId")).longValue() == p2.getId()
-                        && ((Number) row.get("categoryId")).longValue() == cNormal.getId()));
+                ((Number) row.get("platformId")).longValue() == anthropicPlatform.getId()
+                        && ((Number) row.get("categoryId")).longValue() == generalCategory.getId()));
     }
 
     private AppUser saveUser(String prefix) {
@@ -249,10 +253,10 @@ class CoreSearchContractParityTest {
     }
 
     private Platform savePlatform(String name) {
-        Platform p = new Platform();
-        p.setName(name + "_" + UUID.randomUUID().toString().substring(0, 8));
-        p.setActive(true);
-        return platformRepository.save(p);
+        Platform platform = new Platform();
+        platform.setName(name + "_" + UUID.randomUUID().toString().substring(0, 8));
+        platform.setActive(true);
+        return platformRepository.save(platform);
     }
 
     private Category saveCategory(String name) {
@@ -261,9 +265,9 @@ class CoreSearchContractParityTest {
                 return existing;
             }
         }
-        Category c = new Category();
-        c.setName(name);
-        return categoryRepository.save(c);
+        Category category = new Category();
+        category.setName(name);
+        return categoryRepository.save(category);
     }
 
     private AiModel saveModel(Platform platform, String name) {

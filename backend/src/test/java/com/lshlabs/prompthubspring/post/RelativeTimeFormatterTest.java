@@ -1,11 +1,13 @@
 package com.lshlabs.prompthubspring.post;
 
+import org.junit.jupiter.api.Tag;
+
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-
+@Tag("unit")
 class RelativeTimeFormatterTest {
 
     private static final Instant NOW = Instant.parse("2026-03-27T12:00:00Z");

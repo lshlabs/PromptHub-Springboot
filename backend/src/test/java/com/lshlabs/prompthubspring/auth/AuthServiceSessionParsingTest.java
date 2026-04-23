@@ -1,5 +1,7 @@
 package com.lshlabs.prompthubspring.auth;
 
+import org.junit.jupiter.api.Tag;
+
 import com.lshlabs.prompthubspring.user.AppUser;
 import com.lshlabs.prompthubspring.user.AppUserRepository;
 import com.lshlabs.prompthubspring.user.UserSession;
@@ -24,6 +26,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@Tag("unit")
 class AuthServiceSessionParsingTest {
 
     @Mock
