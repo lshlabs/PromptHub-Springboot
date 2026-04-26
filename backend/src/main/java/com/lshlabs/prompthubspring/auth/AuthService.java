@@ -4,6 +4,7 @@ import com.lshlabs.prompthubspring.common.ApiException;
 import com.lshlabs.prompthubspring.user.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +17,8 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class AuthService {
+    private static final int USERNAME_RETRY_MAX_ATTEMPTS = 30;
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private final AppUserRepository userRepository;
     private final UserSettingsRepository userSettingsRepository;
     private final UserSessionRepository userSessionRepository;
@@ -33,13 +36,7 @@ public class AuthService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "이미 사용 중인 이메일입니다.");
         }
 
-        AppUser user = new AppUser();
-        user.setEmail(email);
-        user.setPassword(passwordEncoder.encode(password));
-        user.setUsername(generateUsername(email));
-        user.setAvatarColor1(randomColor());
-        user.setAvatarColor2(randomColor());
-        user = userRepository.save(user);
+        AppUser user = createUserWithUniqueUsername(email, null, passwordEncoder.encode(password), generateUsernameBaseFromEmail(email));
 
         UserSettings settings = new UserSettings();
         settings.setUser(user);
@@ -78,14 +75,12 @@ public class AuthService {
         var payload = googleTokenVerifier.verify(idToken);
 
         AppUser user = userRepository.findByGoogleSub(payload.sub()).orElseGet(() -> {
-            AppUser created = new AppUser();
-            created.setGoogleSub(payload.sub());
-            created.setEmail(payload.email());
-            created.setUsername(generateUniqueUsername(payload.name()));
-            created.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
-            created.setAvatarColor1(randomColor());
-            created.setAvatarColor2(randomColor());
-            AppUser saved = userRepository.save(created);
+            AppUser saved = createUserWithUniqueUsername(
+                    payload.email(),
+                    payload.sub(),
+                    passwordEncoder.encode(UUID.randomUUID().toString()),
+                    payload.name()
+            );
 
             UserSettings settings = new UserSettings();
             settings.setUser(saved);
@@ -114,18 +109,21 @@ public class AuthService {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "유효하지 않은 refresh token입니다.");
         }
         AuthToken stored = authTokenRepository
-                .findByTokenAndTokenTypeAndRevokedAtIsNull(refreshToken, AuthTokenType.REFRESH)
+                .findValidByTokenAndType(refreshToken, AuthTokenType.REFRESH)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "유효하지 않은 refresh token입니다."));
+        // JWT 자체 유효성 + 서버 저장 토큰 상태를 함께 검사해서 탈취/재사용 토큰을 차단한다.
         if (stored.getExpiresAt() != null && stored.getExpiresAt().isBefore(Instant.now())) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "만료된 refresh token입니다.");
         }
         Long userId = jwtProvider.parseRefreshToken(refreshToken);
+        // DB에 저장된 소유자와 JWT subject가 다르면 위변조/혼용으로 간주한다.
         if (stored.getUser() == null || stored.getUser().getId() == null || !stored.getUser().getId().equals(userId)) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "유효하지 않은 refresh token입니다.");
         }
         AppUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "유효하지 않은 refresh token입니다."));
 
+        // refresh는 1회성으로 취급해 즉시 폐기하고 새 토큰 쌍을 발급한다.
         authTokenRepository.revokeByToken(refreshToken, Instant.now());
         return issueTokenPair(user);
     }
@@ -154,6 +152,7 @@ public class AuthService {
     }
 
     private String issueToken(AppUser user, AuthTokenType type) {
+        // Access/Refresh를 모두 DB에 저장해 서버 측 강제 만료(로그아웃, 비번 변경)를 가능하게 한다.
         String token = jwtProvider.createAccessToken(user.getId(), user.getEmail());
         if (type == AuthTokenType.REFRESH) {
             token = jwtProvider.createRefreshToken(user.getId());
@@ -183,25 +182,52 @@ public class AuthService {
         return userSessionRepository.save(session);
     }
 
-    private String generateUsername(String email) {
+    private String generateUsernameBaseFromEmail(String email) {
         String base = email.split("@")[0].replaceAll("[^a-zA-Z0-9_]", "");
-        return generateUniqueUsername(base);
+        return base.isBlank() ? "user" : base;
     }
 
-    private String generateUniqueUsername(String base) {
-        String trimmed = (base == null || base.isBlank()) ? "user" : base;
-        String candidate = trimmed;
-        int idx = 1;
-        while (userRepository.findByUsername(candidate).isPresent()) {
-            candidate = trimmed + idx;
-            idx++;
+    private AppUser createUserWithUniqueUsername(String email, String googleSub, String encodedPassword, String usernameBase) {
+        String normalizedBase = normalizeUsernameBase(usernameBase);
+        for (int attempt = 0; attempt < USERNAME_RETRY_MAX_ATTEMPTS; attempt++) {
+            String candidate = usernameCandidate(normalizedBase, attempt);
+            AppUser created = new AppUser();
+            created.setGoogleSub(googleSub);
+            created.setEmail(email);
+            created.setUsername(candidate);
+            created.setPassword(encodedPassword);
+            created.setAvatarColor1(randomColor());
+            created.setAvatarColor2(randomColor());
+            try {
+                return userRepository.save(created);
+            } catch (DataIntegrityViolationException exception) {
+                if (userRepository.existsByUsername(candidate)) {
+                    continue;
+                }
+                throw exception;
+            }
         }
-        return candidate;
+        throw new ApiException(HttpStatus.CONFLICT, "사용 가능한 사용자명을 할당하지 못했습니다.");
+    }
+
+    private static String normalizeUsernameBase(String base) {
+        if (base == null || base.isBlank()) {
+            return "user";
+        }
+        String normalized = base.replaceAll("[^a-zA-Z0-9_]", "");
+        return normalized.isBlank() ? "user" : normalized;
+    }
+
+    private static String usernameCandidate(String normalizedBase, int attempt) {
+        if (attempt == 0) {
+            return normalizedBase;
+        }
+        return normalizedBase + attempt;
     }
 
     private String randomColor() {
         byte[] bytes = new byte[3];
-        new SecureRandom().nextBytes(bytes);
+        SECURE_RANDOM.nextBytes(bytes);
         return "#" + HexFormat.of().formatHex(bytes).toUpperCase();
     }
 

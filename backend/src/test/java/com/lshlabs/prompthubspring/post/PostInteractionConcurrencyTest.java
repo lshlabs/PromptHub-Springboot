@@ -10,7 +10,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -34,7 +33,7 @@ class PostInteractionConcurrencyTest {
     @Autowired
     private PostRepository postRepository;
     @Autowired
-    private PostInteractionRepository postInteractionRepository;
+    private PostInteractionRepository postInteractionRepo;
     @Autowired
     private PlatformRepository platformRepository;
     @Autowired
@@ -75,8 +74,8 @@ class PostInteractionConcurrencyTest {
         executor.shutdown();
 
         Post reloaded = postRepository.findById(post.getId()).orElseThrow();
-        long likedCount = postInteractionRepository.countByPostAndLikedTrue(reloaded);
-        long bookmarkedCount = postInteractionRepository.countByPostAndBookmarkedTrue(reloaded);
+        long likedCount = postInteractionRepo.countByPostAndLikedTrue(reloaded);
+        long bookmarkedCount = postInteractionRepo.countByPostAndBookmarkedTrue(reloaded);
 
         assertEquals(likedCount, reloaded.getLikeCount());
         assertEquals(bookmarkedCount, reloaded.getBookmarkCount());
@@ -163,7 +162,7 @@ class PostInteractionConcurrencyTest {
         post.setTitle("동시성 테스트 게시글");
         post.setPrompt("동시성 테스트용 prompt 본문입니다.");
         post.setAiResponse("동시성 테스트용 ai response 본문입니다.");
-        post.setTags("test");
+        post.setTags(java.util.List.of("test"));
         return postRepository.save(post);
     }
 }

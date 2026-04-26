@@ -29,10 +29,10 @@ public class TokenAuthFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader != null && authHeader.startsWith("Token ")) {
-            String tokenValue = authHeader.substring("Token ".length()).trim();
-            Optional<AuthToken> tokenOpt = authTokenRepository.findByTokenAndTokenTypeAndRevokedAtIsNull(tokenValue,
+        String tokenValue = resolveAccessToken(request.getHeader("Authorization"));
+        if (tokenValue != null) {
+            // Stateless JWT 파싱만 쓰지 않고 DB 저장 토큰을 확인해 서버 측 강제 로그아웃을 반영한다.
+            Optional<AuthToken> tokenOpt = authTokenRepository.findValidByTokenAndType(tokenValue,
                     AuthTokenType.ACCESS);
             if (tokenOpt.isPresent()) {
                 AuthToken authToken = tokenOpt.get();
@@ -46,5 +46,16 @@ public class TokenAuthFilter extends OncePerRequestFilter {
             }
         }
         filterChain.doFilter(request, response);
+    }
+
+    private static String resolveAccessToken(String authHeader) {
+        if (authHeader == null || authHeader.isBlank()) {
+            return null;
+        }
+        if (authHeader.regionMatches(true, 0, "Bearer ", 0, "Bearer ".length())) {
+            String value = authHeader.substring("Bearer ".length()).trim();
+            return value.isEmpty() ? null : value;
+        }
+        return null;
     }
 }

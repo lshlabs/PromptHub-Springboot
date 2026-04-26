@@ -37,7 +37,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.hamcrest.Matchers.emptyString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -64,7 +63,7 @@ class PostControllerIntegrationTest {
     @Autowired
     private PostRepository postRepository;
     @Autowired
-    private PostInteractionRepository postInteractionRepository;
+    private PostInteractionRepository postInteractionRepo;
     @Autowired
     private AiModelRepository aiModelRepository;
     @Autowired
@@ -78,7 +77,7 @@ class PostControllerIntegrationTest {
 
     @BeforeEach
     void cleanUp() {
-        postInteractionRepository.deleteAll();
+        postInteractionRepo.deleteAll();
         postRepository.deleteAll();
         aiModelRepository.deleteAll();
         platformRepository.deleteAll();
@@ -99,8 +98,8 @@ class PostControllerIntegrationTest {
 
         Map<String, Object> createPayload = payload(platform.getId(), model.getId(), category.getId(), "초기 제목");
 
-        MvcResult createResult = mockMvc.perform(post("/api/posts/create")
-                        .header("Authorization", "Token " + authorToken)
+        MvcResult createResult = mockMvc.perform(post("/api/posts")
+                        .header("Authorization", "Bearer " + authorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createPayload)))
                 .andExpect(status().isCreated())
@@ -137,16 +136,16 @@ class PostControllerIntegrationTest {
                 .andExpect(jsonPath("$.data.relativeTime", not(is(emptyString()))));
 
         Map<String, Object> updatePayload = payload(platform.getId(), model.getId(), category.getId(), "수정 제목");
-        mockMvc.perform(patch("/api/posts/{postId}/update", postId)
-                        .header("Authorization", "Token " + authorToken)
+        mockMvc.perform(patch("/api/posts/{postId}", postId)
+                        .header("Authorization", "Bearer " + authorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updatePayload)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("success"))
                 .andExpect(jsonPath("$.data.title").value("수정 제목"));
 
-        mockMvc.perform(delete("/api/posts/{postId}/delete", postId)
-                        .header("Authorization", "Token " + authorToken))
+        mockMvc.perform(delete("/api/posts/{postId}", postId)
+                        .header("Authorization", "Bearer " + authorToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("success"));
 
@@ -166,15 +165,15 @@ class PostControllerIntegrationTest {
         AiModel model = saveModel(platform, "claude-3.5");
         Long postId = createPost(authorToken, payload(platform.getId(), model.getId(), category.getId(), "작성자 글"));
 
-        mockMvc.perform(patch("/api/posts/{postId}/update", postId)
-                        .header("Authorization", "Token " + otherToken)
+        mockMvc.perform(patch("/api/posts/{postId}", postId)
+                        .header("Authorization", "Bearer " + otherToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(payload(platform.getId(), model.getId(), category.getId(), "남의 글 수정"))))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.message").value("게시글을 수정할 권한이 없습니다."));
 
-        mockMvc.perform(delete("/api/posts/{postId}/delete", postId)
-                        .header("Authorization", "Token " + otherToken))
+        mockMvc.perform(delete("/api/posts/{postId}", postId)
+                        .header("Authorization", "Bearer " + otherToken))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.message").value("게시글을 삭제할 권한이 없습니다."));
     }
@@ -191,8 +190,8 @@ class PostControllerIntegrationTest {
 
         Map<String, Object> mismatchPayload = payload(googlePlatform.getId(), modelOnOpenAi.getId(), etcCategory.getId(), "검증 글");
         mismatchPayload.put("category_etc", "직접입력");
-        mockMvc.perform(post("/api/posts/create")
-                        .header("Authorization", "Token " + authorToken)
+        mockMvc.perform(post("/api/posts")
+                        .header("Authorization", "Bearer " + authorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(mismatchPayload)))
                 .andExpect(status().isBadRequest())
@@ -200,8 +199,8 @@ class PostControllerIntegrationTest {
 
         Map<String, Object> missingCategoryEtc = payload(googlePlatform.getId(), null, etcCategory.getId(), "검증 글2");
         missingCategoryEtc.put("model_etc", "직접입력");
-        mockMvc.perform(post("/api/posts/create")
-                        .header("Authorization", "Token " + authorToken)
+        mockMvc.perform(post("/api/posts")
+                        .header("Authorization", "Bearer " + authorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(missingCategoryEtc)))
                 .andExpect(status().isBadRequest())
@@ -210,8 +209,8 @@ class PostControllerIntegrationTest {
         Map<String, Object> dtoInvalidPayload = payload(googlePlatform.getId(), null, etcCategory.getId(), "bad");
         dtoInvalidPayload.put("category_etc", "직접입력");
         dtoInvalidPayload.put("satisfaction", new BigDecimal("5.5"));
-        mockMvc.perform(post("/api/posts/create")
-                        .header("Authorization", "Token " + authorToken)
+        mockMvc.perform(post("/api/posts")
+                        .header("Authorization", "Bearer " + authorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dtoInvalidPayload)))
                 .andExpect(status().isBadRequest())
@@ -221,8 +220,8 @@ class PostControllerIntegrationTest {
         invalidHalfStepPayload.put("category_etc", "직접입력");
         invalidHalfStepPayload.put("platform", openAiPlatform.getId());
         invalidHalfStepPayload.put("satisfaction", new BigDecimal("4.3"));
-        mockMvc.perform(post("/api/posts/create")
-                        .header("Authorization", "Token " + authorToken)
+        mockMvc.perform(post("/api/posts")
+                        .header("Authorization", "Bearer " + authorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidHalfStepPayload)))
                 .andExpect(status().isBadRequest())
@@ -234,8 +233,8 @@ class PostControllerIntegrationTest {
 
         Map<String, Object> missingModelAndEtc = payload(googlePlatform.getId(), null, category.getId(), "모델 없음");
         missingModelAndEtc.put("model_etc", "");
-        mockMvc.perform(post("/api/posts/create")
-                        .header("Authorization", "Token " + authorToken)
+        mockMvc.perform(post("/api/posts")
+                        .header("Authorization", "Bearer " + authorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(missingModelAndEtc)))
                 .andExpect(status().isBadRequest())
@@ -244,20 +243,20 @@ class PostControllerIntegrationTest {
         Map<String, Object> etcPlatformNonEtcModel = payload(etcPlatform.getId(), nonEtcOnEtcPlatform.getId(),
                 category.getId(), "기타 플랫폼 비기타 모델");
         etcPlatformNonEtcModel.put("model_etc", "");
-        mockMvc.perform(post("/api/posts/create")
-                        .header("Authorization", "Token " + authorToken)
+        mockMvc.perform(post("/api/posts")
+                        .header("Authorization", "Bearer " + authorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(etcPlatformNonEtcModel)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("플랫폼이 기타인 경우 기타 모델만 선택할 수 있습니다."));
 
-        Map<String, Object> etcPlatformMissingEtcName = payload(etcPlatform.getId(), etcModel.getId(),
+        Map<String, Object> missingEtcNamePayload = payload(etcPlatform.getId(), etcModel.getId(),
                 category.getId(), "기타 플랫폼 model_etc 누락");
-        etcPlatformMissingEtcName.put("model_etc", "");
-        mockMvc.perform(post("/api/posts/create")
-                        .header("Authorization", "Token " + authorToken)
+        missingEtcNamePayload.put("model_etc", "");
+        mockMvc.perform(post("/api/posts")
+                        .header("Authorization", "Bearer " + authorToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(etcPlatformMissingEtcName)))
+                        .content(objectMapper.writeValueAsString(missingEtcNamePayload)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("플랫폼이 기타인 경우 기타 모델명을 입력해야 합니다."));
 
@@ -265,8 +264,8 @@ class PostControllerIntegrationTest {
                 category.getId(), "기타 플랫폼 상세모델");
         etcPlatformWithDetail.put("model_etc", "직접입력");
         etcPlatformWithDetail.put("model_detail", "detail");
-        mockMvc.perform(post("/api/posts/create")
-                        .header("Authorization", "Token " + authorToken)
+        mockMvc.perform(post("/api/posts")
+                        .header("Authorization", "Bearer " + authorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(etcPlatformWithDetail)))
                 .andExpect(status().isBadRequest())
@@ -278,8 +277,8 @@ class PostControllerIntegrationTest {
                 category.getId(), "기타 모델 상세");
         etcModelWithDetail.put("model_etc", "직접입력");
         etcModelWithDetail.put("model_detail", "detail");
-        mockMvc.perform(post("/api/posts/create")
-                        .header("Authorization", "Token " + authorToken)
+        mockMvc.perform(post("/api/posts")
+                        .header("Authorization", "Bearer " + authorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(etcModelWithDetail)))
                 .andExpect(status().isBadRequest())
@@ -289,8 +288,8 @@ class PostControllerIntegrationTest {
                 category.getId(), "허용 조합");
         allowedEtcCombination.put("model_etc", "커스텀 모델");
         allowedEtcCombination.put("model_detail", "");
-        mockMvc.perform(post("/api/posts/create")
-                        .header("Authorization", "Token " + authorToken)
+        mockMvc.perform(post("/api/posts")
+                        .header("Authorization", "Bearer " + authorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(allowedEtcCombination)))
                 .andExpect(status().isCreated())
@@ -331,7 +330,7 @@ class PostControllerIntegrationTest {
     }
 
     @Test
-    void canonicalUris_work_and_legacyAliases_returnDeprecationWarningHeader() throws Exception {
+    void canonicalUris_work_and_legacyAliases_areRemoved() throws Exception {
         AppUser author = saveUser("ctrl02_author");
         String authorToken = issueAccessToken(author);
         Platform platform = savePlatform("OpenAI");
@@ -341,48 +340,39 @@ class PostControllerIntegrationTest {
         Map<String, Object> createPayload = payload(platform.getId(), model.getId(), category.getId(), "표준 URI 생성");
 
         MvcResult canonicalCreate = mockMvc.perform(post("/api/posts")
-                        .header("Authorization", "Token " + authorToken)
+                        .header("Authorization", "Bearer " + authorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createPayload)))
                 .andExpect(status().isCreated())
-                .andExpect(header().doesNotExist("Warning"))
                 .andReturn();
 
         Long canonicalPostId = ((Number) JsonPath.read(canonicalCreate.getResponse().getContentAsString(), "$.data.id")).longValue();
 
         mockMvc.perform(patch("/api/posts/{postId}", canonicalPostId)
-                        .header("Authorization", "Token " + authorToken)
+                        .header("Authorization", "Bearer " + authorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(payload(platform.getId(), model.getId(), category.getId(), "표준 URI 수정"))))
-                .andExpect(status().isOk())
-                .andExpect(header().doesNotExist("Warning"));
+                .andExpect(status().isOk());
 
         mockMvc.perform(delete("/api/posts/{postId}", canonicalPostId)
-                        .header("Authorization", "Token " + authorToken))
-                .andExpect(status().isOk())
-                .andExpect(header().doesNotExist("Warning"));
+                        .header("Authorization", "Bearer " + authorToken))
+                .andExpect(status().isOk());
 
-        MvcResult legacyCreate = mockMvc.perform(post("/api/posts/create")
-                        .header("Authorization", "Token " + authorToken)
+        mockMvc.perform(post("/api/posts/create")
+                        .header("Authorization", "Bearer " + authorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(payload(platform.getId(), model.getId(), category.getId(), "레거시 URI 생성"))))
-                .andExpect(status().isCreated())
-                .andExpect(header().string("Warning", "299 - Deprecated legacy endpoint, use POST /api/posts"))
-                .andReturn();
+                .andExpect(status().isMethodNotAllowed());
 
-        Long legacyPostId = ((Number) JsonPath.read(legacyCreate.getResponse().getContentAsString(), "$.data.id")).longValue();
-
-        mockMvc.perform(patch("/api/posts/{postId}/update", legacyPostId)
-                        .header("Authorization", "Token " + authorToken)
+        mockMvc.perform(patch("/api/posts/{postId}/update", canonicalPostId)
+                        .header("Authorization", "Bearer " + authorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(payload(platform.getId(), model.getId(), category.getId(), "레거시 URI 수정"))))
-                .andExpect(status().isOk())
-                .andExpect(header().string("Warning", "299 - Deprecated legacy endpoint, use PUT/PATCH /api/posts/{postId}"));
+                .andExpect(status().isNotFound());
 
-        mockMvc.perform(delete("/api/posts/{postId}/delete", legacyPostId)
-                        .header("Authorization", "Token " + authorToken))
-                .andExpect(status().isOk())
-                .andExpect(header().string("Warning", "299 - Deprecated legacy endpoint, use DELETE /api/posts/{postId}"));
+        mockMvc.perform(delete("/api/posts/{postId}/delete", canonicalPostId)
+                        .header("Authorization", "Bearer " + authorToken))
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -398,7 +388,7 @@ class PostControllerIntegrationTest {
         Long postId = createPost(authorToken, payload(platform.getId(), model.getId(), category.getId(), "자기글 반응 검증"));
 
         mockMvc.perform(post("/api/posts/{postId}/like", postId)
-                        .header("Authorization", "Token " + authorToken))
+                        .header("Authorization", "Bearer " + authorToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("success"))
                 .andExpect(jsonPath("$.message").value("자신의 게시글에는 좋아요를 누를 수 없습니다."))
@@ -406,7 +396,7 @@ class PostControllerIntegrationTest {
                 .andExpect(jsonPath("$.data.like_count").value(0));
 
         mockMvc.perform(post("/api/posts/{postId}/bookmark", postId)
-                        .header("Authorization", "Token " + authorToken))
+                        .header("Authorization", "Bearer " + authorToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("success"))
                 .andExpect(jsonPath("$.message").value("자신의 게시글에는 북마크를 할 수 없습니다."))
@@ -414,7 +404,7 @@ class PostControllerIntegrationTest {
                 .andExpect(jsonPath("$.data.bookmark_count").value(0));
 
         mockMvc.perform(post("/api/posts/{postId}/like", postId)
-                        .header("Authorization", "Token " + otherToken))
+                        .header("Authorization", "Bearer " + otherToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("success"))
                 .andExpect(jsonPath("$.message").doesNotExist())
@@ -432,8 +422,8 @@ class PostControllerIntegrationTest {
 
         Map<String, Object> overLimitTagsPayload = payload(platform.getId(), model.getId(), category.getId(), "태그 초과");
         overLimitTagsPayload.put("tags", List.of("t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9", "t10", "t11"));
-        mockMvc.perform(post("/api/posts/create")
-                        .header("Authorization", "Token " + authorToken)
+        mockMvc.perform(post("/api/posts")
+                        .header("Authorization", "Bearer " + authorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(overLimitTagsPayload)))
                 .andExpect(status().isBadRequest())
@@ -442,8 +432,8 @@ class PostControllerIntegrationTest {
 
         Map<String, Object> blankTagPayload = payload(platform.getId(), model.getId(), category.getId(), "빈 태그 검증");
         blankTagPayload.put("tags", List.of("valid", "   "));
-        mockMvc.perform(post("/api/posts/create")
-                        .header("Authorization", "Token " + authorToken)
+        mockMvc.perform(post("/api/posts")
+                        .header("Authorization", "Bearer " + authorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(blankTagPayload)))
                 .andExpect(status().isBadRequest())
@@ -452,8 +442,8 @@ class PostControllerIntegrationTest {
 
         Map<String, Object> duplicateTagsPayload = payload(platform.getId(), model.getId(), category.getId(), "중복 태그 유지");
         duplicateTagsPayload.put("tags", List.of("dup", "dup", "unique"));
-        mockMvc.perform(post("/api/posts/create")
-                        .header("Authorization", "Token " + authorToken)
+        mockMvc.perform(post("/api/posts")
+                        .header("Authorization", "Bearer " + authorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(duplicateTagsPayload)))
                 .andExpect(status().isCreated())
@@ -464,7 +454,6 @@ class PostControllerIntegrationTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void postsList_supportsCompatibilityQueryContract_sortSearchFilterExclude() throws Exception {
         AppUser authorMatch = saveUser("writer_keyword");
         AppUser authorOther = saveUser("other");
@@ -567,8 +556,8 @@ class PostControllerIntegrationTest {
     }
 
     private Long createPost(String token, Map<String, Object> payload) throws Exception {
-        MvcResult result = mockMvc.perform(post("/api/posts/create")
-                        .header("Authorization", "Token " + token)
+        MvcResult result = mockMvc.perform(post("/api/posts")
+                        .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(payload)))
                 .andExpect(status().isCreated())
@@ -683,7 +672,7 @@ class PostControllerIntegrationTest {
         post.setAdditionalOpinion(additionalOpinion);
         post.setModelEtc(modelEtc);
         post.setCategoryEtc(categoryEtc);
-        post.setTags("tag1,tag2");
+        post.setTags(java.util.List.of("tag1", "tag2"));
         post.setViewCount(views);
         post.setLikeCount(likes);
         post.setBookmarkCount(bookmarks);

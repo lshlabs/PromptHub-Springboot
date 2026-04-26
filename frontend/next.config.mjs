@@ -11,6 +11,15 @@ const nextConfig = {
     unoptimized: true,
   },
   // 배포 환경에서도 동일하게 동작하도록 API 경로 유지
+  async redirects() {
+    return [
+      {
+        source: '/api/:path*/',
+        destination: '/api/:path*',
+        permanent: true,
+      },
+    ]
+  },
   async rewrites() {
     return [
       {

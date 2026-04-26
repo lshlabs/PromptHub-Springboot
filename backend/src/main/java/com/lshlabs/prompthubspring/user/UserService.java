@@ -4,7 +4,6 @@ import com.lshlabs.prompthubspring.auth.AuthService;
 import com.lshlabs.prompthubspring.auth.AuthTokenRepository;
 import com.lshlabs.prompthubspring.common.ApiException;
 import com.lshlabs.prompthubspring.common.CloudinaryService;
-import com.lshlabs.prompthubspring.post.PostInteractionRepository;
 import com.lshlabs.prompthubspring.post.PostRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,6 +20,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class UserService {
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private final AppUserRepository userRepository;
     private final UserSettingsRepository userSettingsRepository;
     private final UserSessionRepository userSessionRepository;
@@ -28,7 +28,6 @@ public class UserService {
     private final AuthService authService;
     private final PasswordEncoder passwordEncoder;
     private final PostRepository postRepository;
-    private final PostInteractionRepository postInteractionRepository;
     private final CloudinaryService cloudinaryService;
 
     public ProfileResponse profile(AppUser user) {
@@ -160,7 +159,7 @@ public class UserService {
     }
 
     public List<UserMapper.SessionData> sessions(AppUser user) {
-        return userSessionRepository.findByUserAndRevokedAtIsNullOrderByLastActiveDesc(user)
+        return userSessionRepository.findActiveSessionsByUser(user)
                 .stream()
                 .map(UserMapper::toSessionDto)
                 .toList();
@@ -172,7 +171,7 @@ public class UserService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "종료할 세션 키가 필요합니다.");
         }
 
-        UserSession session = userSessionRepository.findBySessionKeyAndUserAndRevokedAtIsNull(sessionKey, user)
+        UserSession session = userSessionRepository.findActiveBySessionKeyAndUser(sessionKey, user)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "해당 세션을 찾을 수 없습니다."));
         session.setRevokedAt(java.time.Instant.now());
         userSessionRepository.save(session);
@@ -181,6 +180,7 @@ public class UserService {
 
     @Transactional
     public EndOtherSessionsResponse endOtherSessions(AppUser user, String currentSessionKey) {
+        // 현재 세션 키가 있으면 제외하고, 없으면 전체 활성 세션을 종료한다.
         int revokedCount = userSessionRepository.revokeOtherActiveSessions(
                 user,
                 StringUtils.hasText(currentSessionKey) ? currentSessionKey : null,
@@ -205,6 +205,7 @@ public class UserService {
         AppUser user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."));
 
+        // 공개 프로필이 꺼져 있으면 bio만 마스킹하고 나머지 집계 데이터는 제공한다.
         boolean publicProfile = userSettingsRepository.findByUser(user)
                 .map(UserSettings::isPublicProfile)
                 .orElse(true);
@@ -233,6 +234,7 @@ public class UserService {
 
     @Transactional
     public MessageResponse deleteAccount(AppUser user) {
+        // FK 제약을 피하기 위해 연관 데이터를 먼저 정리한 뒤 사용자 레코드를 삭제한다.
         authTokenRepository.deleteByUser(user);
         userSessionRepository.deleteByUser(user);
         userSettingsRepository.deleteByUser(user);
@@ -242,7 +244,7 @@ public class UserService {
 
     private String randomColor() {
         byte[] bytes = new byte[3];
-        new SecureRandom().nextBytes(bytes);
+        SECURE_RANDOM.nextBytes(bytes);
         return "#" + HexFormat.of().formatHex(bytes).toUpperCase();
     }
 

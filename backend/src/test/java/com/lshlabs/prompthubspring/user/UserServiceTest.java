@@ -6,7 +6,6 @@ import com.lshlabs.prompthubspring.common.ApiException;
 import com.lshlabs.prompthubspring.common.CloudinaryService;
 import com.lshlabs.prompthubspring.auth.AuthService;
 import com.lshlabs.prompthubspring.auth.AuthTokenRepository;
-import com.lshlabs.prompthubspring.post.PostInteractionRepository;
 import com.lshlabs.prompthubspring.post.PostRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,8 +43,6 @@ class UserServiceTest {
     @Mock
     private PostRepository postRepository;
     @Mock
-    private PostInteractionRepository postInteractionRepository;
-    @Mock
     private CloudinaryService cloudinaryService;
 
     private UserService userService;
@@ -53,8 +50,7 @@ class UserServiceTest {
     @BeforeEach
     void setUp() {
         userService = new UserService(userRepository, userSettingsRepository, userSessionRepository,
-                authTokenRepository, authService, passwordEncoder, postRepository, postInteractionRepository,
-                cloudinaryService);
+                authTokenRepository, authService, passwordEncoder, postRepository, cloudinaryService);
     }
 
     @Test
@@ -86,7 +82,7 @@ class UserServiceTest {
         currentUser.setEmail("me@example.com");
         currentUser.setUsername("me");
 
-        when(userSessionRepository.findBySessionKeyAndUserAndRevokedAtIsNull("other-user-session", currentUser))
+        when(userSessionRepository.findActiveBySessionKeyAndUser("other-user-session", currentUser))
                 .thenReturn(Optional.empty());
 
         ApiException exception = assertThrows(ApiException.class,
@@ -104,7 +100,7 @@ class UserServiceTest {
         session.setUser(currentUser);
         session.setSessionKey("session-1");
 
-        when(userSessionRepository.findBySessionKeyAndUserAndRevokedAtIsNull("session-1", currentUser))
+        when(userSessionRepository.findActiveBySessionKeyAndUser("session-1", currentUser))
                 .thenReturn(Optional.of(session));
         when(userSessionRepository.save(any(UserSession.class))).thenReturn(session);
 

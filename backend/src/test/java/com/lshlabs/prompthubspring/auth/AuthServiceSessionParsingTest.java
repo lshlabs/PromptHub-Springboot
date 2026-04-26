@@ -12,9 +12,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -158,5 +162,85 @@ class AuthServiceSessionParsingTest {
         assertEquals("Pixel", saved.getDevice());
         assertTrue(saved.getBrowser().startsWith("Chrome"));
         assertTrue(saved.getOs().startsWith("Android"));
+    }
+
+    @Test
+    void googleLogin_retriesUsername_whenConcurrentDuplicateOccurs() {
+        AuthService authService = new AuthService(
+                userRepository,
+                userSettingsRepository,
+                userSessionRepository,
+                authTokenRepository,
+                passwordEncoder,
+                jwtProvider,
+                googleTokenVerifier
+        );
+
+        String ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+        when(googleTokenVerifier.verify("google-id-token"))
+                .thenReturn(new GoogleTokenVerifier.GoogleUserPayload("google-sub-race", "race@example.com", "Google User"));
+        when(userRepository.findByGoogleSub("google-sub-race")).thenReturn(Optional.empty());
+        when(passwordEncoder.encode(anyString())).thenReturn("encoded");
+        when(jwtProvider.createAccessToken(any(), anyString())).thenReturn("access-token");
+        when(jwtProvider.createRefreshToken(any())).thenReturn("refresh-token");
+        when(authTokenRepository.save(any(AuthToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(userSessionRepository.save(any(UserSession.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(userSettingsRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        List<String> attemptedUsernames = new ArrayList<>();
+        AtomicInteger saveAttempt = new AtomicInteger(0);
+        when(userRepository.save(any(AppUser.class))).thenAnswer(invocation -> {
+            AppUser user = invocation.getArgument(0);
+            attemptedUsernames.add(user.getUsername());
+            if (saveAttempt.getAndIncrement() == 0) {
+                throw new DataIntegrityViolationException("duplicate username");
+            }
+            user.setId(10L);
+            return user;
+        });
+        when(userRepository.existsByUsername("GoogleUser")).thenReturn(true);
+
+        AuthService.LoginResponse response = authService.loginWithGoogle("google-id-token", ua, "127.0.0.1");
+
+        assertEquals("access-token", response.token());
+        assertEquals(List.of("GoogleUser", "GoogleUser1"), attemptedUsernames);
+    }
+
+    @Test
+    void register_retriesUsername_whenConcurrentDuplicateOccurs() {
+        AuthService authService = new AuthService(
+                userRepository,
+                userSettingsRepository,
+                userSessionRepository,
+                authTokenRepository,
+                passwordEncoder,
+                jwtProvider,
+                googleTokenVerifier
+        );
+
+        when(userRepository.findByEmail("race.user@example.com")).thenReturn(Optional.empty());
+        when(passwordEncoder.encode("pw")).thenReturn("encoded-pw");
+        when(jwtProvider.createAccessToken(any(), anyString())).thenReturn("access-token");
+        when(jwtProvider.createRefreshToken(any())).thenReturn("refresh-token");
+        when(authTokenRepository.save(any(AuthToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(userSettingsRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        List<String> attemptedUsernames = new ArrayList<>();
+        AtomicInteger saveAttempt = new AtomicInteger(0);
+        when(userRepository.save(any(AppUser.class))).thenAnswer(invocation -> {
+            AppUser user = invocation.getArgument(0);
+            attemptedUsernames.add(user.getUsername());
+            if (saveAttempt.getAndIncrement() == 0) {
+                throw new DataIntegrityViolationException("duplicate username");
+            }
+            user.setId(11L);
+            return user;
+        });
+        when(userRepository.existsByUsername("raceuser")).thenReturn(true);
+
+        AuthService.RegisterResponse response = authService.register("race.user@example.com", "pw", "pw");
+
+        assertEquals("access-token", response.token());
+        assertEquals(List.of("raceuser", "raceuser1"), attemptedUsernames);
     }
 }

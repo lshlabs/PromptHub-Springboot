@@ -20,10 +20,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
 @Tag("integration")
-class PostInteractionOrderingRepositoryTest {
+class PostInteractionOrderingTest {
 
     @Autowired
-    private PostInteractionRepository postInteractionRepository;
+    private PostInteractionRepository postInteractionRepo;
     @Autowired
     private AppUserRepository appUserRepository;
     @Autowired
@@ -47,7 +47,7 @@ class PostInteractionOrderingRepositoryTest {
         PostInteraction older = saveInteraction(currentUser, olderPost, true, false, Instant.parse("2026-02-01T00:00:00Z"));
         PostInteraction newer = saveInteraction(currentUser, newerPost, true, false, Instant.parse("2026-03-01T00:00:00Z"));
 
-        var page = postInteractionRepository.findByUserAndLikedTrueOrderByUpdatedAtDescIdDesc(
+        var page = postInteractionRepo.findRecentLikesByUser(
                 currentUser,
                 PageRequest.of(0, 20)
         );
@@ -71,7 +71,7 @@ class PostInteractionOrderingRepositoryTest {
         PostInteraction first = saveInteraction(currentUser, firstPost, false, true, sameTime);
         PostInteraction second = saveInteraction(currentUser, secondPost, false, true, sameTime);
 
-        var page = postInteractionRepository.findByUserAndBookmarkedTrueOrderByUpdatedAtDescIdDesc(
+        var page = postInteractionRepo.findRecentBookmarksByUser(
                 currentUser,
                 PageRequest.of(0, 20)
         );
@@ -89,7 +89,7 @@ class PostInteractionOrderingRepositoryTest {
         interaction.setBookmarked(bookmarked);
         interaction.setCreatedAt(updatedAt.minusSeconds(60));
         interaction.setUpdatedAt(updatedAt);
-        return postInteractionRepository.save(interaction);
+        return postInteractionRepo.save(interaction);
     }
 
     private AppUser saveUser(String base) {
@@ -122,7 +122,7 @@ class PostInteractionOrderingRepositoryTest {
         post.setTitle("정렬테스트-" + suffix);
         post.setPrompt("prompt-" + suffix);
         post.setAiResponse("response-" + suffix);
-        post.setTags("tag");
+        post.setTags(java.util.List.of("tag"));
         return postRepository.save(post);
     }
 }

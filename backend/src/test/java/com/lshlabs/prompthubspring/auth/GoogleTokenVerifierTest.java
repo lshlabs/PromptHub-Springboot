@@ -5,57 +5,68 @@ import org.junit.jupiter.api.Tag;
 import com.lshlabs.prompthubspring.common.ApiException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.client.MockRestServiceServer;
-import org.springframework.web.client.RestClient;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtException;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
-import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
-import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 @Tag("unit")
 class GoogleTokenVerifierTest {
 
-    private MockRestServiceServer server;
+    private JwtDecoder jwtDecoder;
     private GoogleTokenVerifier verifier;
 
     @BeforeEach
     void setUp() {
-        RestClient.Builder builder = RestClient.builder().baseUrl("https://oauth2.googleapis.com");
-        server = MockRestServiceServer.bindTo(builder).build();
-        verifier = new GoogleTokenVerifier("expected-client-id", builder.build());
+        jwtDecoder = mock(JwtDecoder.class);
+        verifier = new GoogleTokenVerifier("expected-client-id", jwtDecoder);
     }
 
     @Test
     void verify_returnsPayload_whenClaimsAreValid() {
-        server.expect(requestTo("https://oauth2.googleapis.com/tokeninfo?id_token=valid-id-token"))
-                .andExpect(method(HttpMethod.GET))
-                .andRespond(withSuccess(
-                        """
-                                {"aud":"expected-client-id","iss":"https://accounts.google.com","sub":"google-sub-1","email":"user@example.com","email_verified":true,"name":"Prompt Hub"}
-                                """,
-                        MediaType.APPLICATION_JSON));
+        when(jwtDecoder.decode("valid-id-token")).thenReturn(jwt(
+                "valid-id-token",
+                Map.of(
+                        "sub", "google-sub-1",
+                        "email", "user@example.com",
+                        "name", "Prompt Hub",
+                        "email_verified", true,
+                        "iss", "https://accounts.google.com",
+                        "aud", List.of("expected-client-id")
+                ),
+                Instant.now().plusSeconds(600)
+        ));
 
         GoogleTokenVerifier.GoogleUserPayload payload = verifier.verify("valid-id-token");
 
         assertEquals("google-sub-1", payload.sub());
         assertEquals("user@example.com", payload.email());
         assertEquals("Prompt Hub", payload.name());
-        server.verify();
     }
 
     @Test
     void verify_throwsBadRequest_whenAudDoesNotMatch() {
-        server.expect(requestTo("https://oauth2.googleapis.com/tokeninfo?id_token=invalid-aud-token"))
-                .andRespond(withSuccess(
-                        """
-                                {"aud":"another-client-id","iss":"https://accounts.google.com","sub":"google-sub-1","email":"user@example.com","email_verified":true,"name":"Prompt Hub"}
-                                """,
-                        MediaType.APPLICATION_JSON));
+        when(jwtDecoder.decode("invalid-aud-token")).thenReturn(jwt(
+                "invalid-aud-token",
+                Map.of(
+                        "sub", "google-sub-1",
+                        "email", "user@example.com",
+                        "name", "Prompt Hub",
+                        "email_verified", true,
+                        "iss", "https://accounts.google.com",
+                        "aud", List.of("another-client-id")
+                ),
+                Instant.now().plusSeconds(600)
+        ));
 
         ApiException exception = assertThrows(ApiException.class, () -> verifier.verify("invalid-aud-token"));
 
@@ -65,12 +76,18 @@ class GoogleTokenVerifierTest {
 
     @Test
     void verify_throwsBadRequest_whenIssIsInvalid() {
-        server.expect(requestTo("https://oauth2.googleapis.com/tokeninfo?id_token=invalid-iss-token"))
-                .andRespond(withSuccess(
-                        """
-                                {"aud":"expected-client-id","iss":"https://malicious.example.com","sub":"google-sub-1","email":"user@example.com","email_verified":true,"name":"Prompt Hub"}
-                                """,
-                        MediaType.APPLICATION_JSON));
+        when(jwtDecoder.decode("invalid-iss-token")).thenReturn(jwt(
+                "invalid-iss-token",
+                Map.of(
+                        "sub", "google-sub-1",
+                        "email", "user@example.com",
+                        "name", "Prompt Hub",
+                        "email_verified", true,
+                        "iss", "https://malicious.example.com",
+                        "aud", List.of("expected-client-id")
+                ),
+                Instant.now().plusSeconds(600)
+        ));
 
         ApiException exception = assertThrows(ApiException.class, () -> verifier.verify("invalid-iss-token"));
 
@@ -80,12 +97,17 @@ class GoogleTokenVerifierTest {
 
     @Test
     void verify_throwsBadRequest_whenSubIsMissing() {
-        server.expect(requestTo("https://oauth2.googleapis.com/tokeninfo?id_token=missing-sub-token"))
-                .andRespond(withSuccess(
-                        """
-                                {"aud":"expected-client-id","iss":"https://accounts.google.com","email":"user@example.com","email_verified":true,"name":"Prompt Hub"}
-                                """,
-                        MediaType.APPLICATION_JSON));
+        when(jwtDecoder.decode("missing-sub-token")).thenReturn(jwt(
+                "missing-sub-token",
+                Map.of(
+                        "email", "user@example.com",
+                        "name", "Prompt Hub",
+                        "email_verified", true,
+                        "iss", "https://accounts.google.com",
+                        "aud", List.of("expected-client-id")
+                ),
+                Instant.now().plusSeconds(600)
+        ));
 
         ApiException exception = assertThrows(ApiException.class, () -> verifier.verify("missing-sub-token"));
 
@@ -95,12 +117,17 @@ class GoogleTokenVerifierTest {
 
     @Test
     void verify_throwsBadRequest_whenEmailVerifiedMissing() {
-        server.expect(requestTo("https://oauth2.googleapis.com/tokeninfo?id_token=missing-email-verified"))
-                .andRespond(withSuccess(
-                        """
-                                {"aud":"expected-client-id","iss":"https://accounts.google.com","sub":"google-sub-1","email":"user@example.com","name":"Prompt Hub"}
-                                """,
-                        MediaType.APPLICATION_JSON));
+        when(jwtDecoder.decode("missing-email-verified")).thenReturn(jwt(
+                "missing-email-verified",
+                Map.of(
+                        "sub", "google-sub-1",
+                        "email", "user@example.com",
+                        "name", "Prompt Hub",
+                        "iss", "https://accounts.google.com",
+                        "aud", List.of("expected-client-id")
+                ),
+                Instant.now().plusSeconds(600)
+        ));
 
         ApiException exception = assertThrows(ApiException.class, () -> verifier.verify("missing-email-verified"));
 
@@ -110,12 +137,18 @@ class GoogleTokenVerifierTest {
 
     @Test
     void verify_throwsBadRequest_whenEmailVerifiedFalse() {
-        server.expect(requestTo("https://oauth2.googleapis.com/tokeninfo?id_token=email-not-verified"))
-                .andRespond(withSuccess(
-                        """
-                                {"aud":"expected-client-id","iss":"https://accounts.google.com","sub":"google-sub-1","email":"user@example.com","email_verified":"false","name":"Prompt Hub"}
-                                """,
-                        MediaType.APPLICATION_JSON));
+        when(jwtDecoder.decode("email-not-verified")).thenReturn(jwt(
+                "email-not-verified",
+                Map.of(
+                        "sub", "google-sub-1",
+                        "email", "user@example.com",
+                        "name", "Prompt Hub",
+                        "email_verified", "false",
+                        "iss", "https://accounts.google.com",
+                        "aud", List.of("expected-client-id")
+                ),
+                Instant.now().plusSeconds(600)
+        ));
 
         ApiException exception = assertThrows(ApiException.class, () -> verifier.verify("email-not-verified"));
 
@@ -125,12 +158,18 @@ class GoogleTokenVerifierTest {
 
     @Test
     void verify_throwsBadRequest_whenTokenIsExpiredByExpClaim() {
-        server.expect(requestTo("https://oauth2.googleapis.com/tokeninfo?id_token=expired-token"))
-                .andRespond(withSuccess(
-                        """
-                                {"aud":"expected-client-id","iss":"https://accounts.google.com","sub":"google-sub-1","email":"user@example.com","email_verified":true,"exp":"1"}
-                                """,
-                        MediaType.APPLICATION_JSON));
+        when(jwtDecoder.decode("expired-token")).thenReturn(jwt(
+                "expired-token",
+                Map.of(
+                        "sub", "google-sub-1",
+                        "email", "user@example.com",
+                        "name", "Prompt Hub",
+                        "email_verified", true,
+                        "iss", "https://accounts.google.com",
+                        "aud", List.of("expected-client-id")
+                ),
+                Instant.now().minusSeconds(5)
+        ));
 
         ApiException exception = assertThrows(ApiException.class, () -> verifier.verify("expired-token"));
 
@@ -139,13 +178,9 @@ class GoogleTokenVerifierTest {
     }
 
     @Test
-    void verify_throwsBadRequest_whenProviderRejectsTokenLikeSignatureMismatch() {
-        server.expect(requestTo("https://oauth2.googleapis.com/tokeninfo?id_token=signature-mismatch-token"))
-                .andRespond(withStatus(HttpStatus.BAD_REQUEST)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body("""
-                                {"error":"invalid_token","error_description":"Invalid Value"}
-                                """));
+    void verify_throwsBadRequest_whenDecoderRejectsTokenLikeSignatureMismatch() {
+        when(jwtDecoder.decode("signature-mismatch-token"))
+                .thenThrow(new JwtException("Invalid JWT signature"));
 
         ApiException exception = assertThrows(ApiException.class, () -> verifier.verify("signature-mismatch-token"));
 
@@ -154,17 +189,22 @@ class GoogleTokenVerifierTest {
     }
 
     @Test
-    void verify_throwsBadGateway_whenProviderServerFails() {
-        server.expect(requestTo("https://oauth2.googleapis.com/tokeninfo?id_token=google-upstream-down"))
-                .andRespond(withStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body("""
-                                {"error":"server_error"}
-                                """));
+    void verify_throwsBadGateway_whenDecoderFailsDueToUpstreamOrNetworkIssue() {
+        when(jwtDecoder.decode("google-upstream-down"))
+                .thenThrow(new RuntimeException("Failed to retrieve remote JWK set"));
 
         ApiException exception = assertThrows(ApiException.class, () -> verifier.verify("google-upstream-down"));
 
         assertEquals(HttpStatus.BAD_GATEWAY, exception.getStatus());
         assertEquals("Google 토큰 검증 요청에 실패했습니다.", exception.getMessage());
+    }
+
+    private Jwt jwt(String tokenValue, Map<String, Object> claims, Instant expiresAt) {
+        return Jwt.withTokenValue(tokenValue)
+                .header("alg", "RS256")
+                .issuedAt(Instant.now().minusSeconds(60))
+                .expiresAt(expiresAt)
+                .claims(existing -> existing.putAll(claims))
+                .build();
     }
 }

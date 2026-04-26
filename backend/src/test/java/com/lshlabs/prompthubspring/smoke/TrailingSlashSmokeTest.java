@@ -21,16 +21,25 @@ class TrailingSlashSmokeTest {
     private MockMvc mockMvc;
 
     @Test
-    void legacyTrailingSlashRoutes_mustBeForwardedToCanonicalEndpoints() throws Exception {
-        mockMvc.perform(get("/api/core/health/"))
+    void trailingSlashRoutes_areNotHandledInsideApplication() throws Exception {
+        mockMvc.perform(get("/api/core/health"))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(get("/api/posts/")
+        mockMvc.perform(get("/api/posts")
                         .param("page", "1")
                         .param("page_size", "5"))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(get("/api/core/trending/category-rankings/"))
+        mockMvc.perform(get("/api/core/trending/category-rankings"))
                 .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/core/health/"))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/posts/")
+                        .param("page", "1")
+                        .param("page_size", "5"))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/core/trending/category-rankings/"))
+                .andExpect(status().isNotFound());
     }
 }

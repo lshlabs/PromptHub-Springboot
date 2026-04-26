@@ -28,14 +28,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 @ActiveProfiles("test")
 @Tag("integration")
-class CoreTrendingModelContractTest {
+class CoreTrendingModelApiTest {
 
     @Autowired
     private MockMvc mockMvc;
     @Autowired
-    private TrendingRankingRepository trendingRankingRepository;
+    private TrendingRankingRepository trendingRankingRepo;
     @Autowired
-    private TrendingCategoryRepository trendingCategoryRepository;
+    private TrendingCategoryRepository trendingCategoryRepo;
     @Autowired
     private PostRepository postRepository;
     @Autowired
@@ -47,7 +47,7 @@ class CoreTrendingModelContractTest {
     @Autowired
     private AppUserRepository appUserRepository;
     @Autowired
-    private PostInteractionRepository postInteractionRepository;
+    private PostInteractionRepository postInteractionRepo;
     @Autowired
     private AuthTokenRepository authTokenRepository;
     @Autowired
@@ -78,7 +78,7 @@ class CoreTrendingModelContractTest {
         trendingCategory.setIconName("TestIcon");
         trendingCategory.setOrderNum(1);
         trendingCategory.setActive(true);
-        trendingCategory = trendingCategoryRepository.save(trendingCategory);
+        trendingCategory = trendingCategoryRepo.save(trendingCategory);
 
         exactOnTrendingName = "MODEL_PARITY_EXACT_ON";
         TrendingRankingEntity exactOn = new TrendingRankingEntity();
@@ -92,7 +92,7 @@ class CoreTrendingModelContractTest {
         exactOn.setModelDetailContains("Sonnet-4_5");
         exactOn.setModelEtcContains("Sonnet-4_5");
         exactOn.setActive(true);
-        trendingRankingRepository.save(exactOn);
+        trendingRankingRepo.save(exactOn);
 
         exactOffTrendingName = "MODEL_PARITY_EXACT_OFF";
         TrendingRankingEntity exactOff = new TrendingRankingEntity();
@@ -106,15 +106,15 @@ class CoreTrendingModelContractTest {
         exactOff.setModelDetailContains("Sonnet-4_5");
         exactOff.setModelEtcContains("Sonnet-4_5");
         exactOff.setActive(true);
-        trendingRankingRepository.save(exactOff);
+        trendingRankingRepo.save(exactOff);
     }
 
     @AfterEach
     void tearDown() {
-        postInteractionRepository.deleteAll();
+        postInteractionRepo.deleteAll();
         postRepository.deleteAll();
-        trendingRankingRepository.deleteAll();
-        trendingCategoryRepository.deleteAll();
+        trendingRankingRepo.deleteAll();
+        trendingCategoryRepo.deleteAll();
         aiModelRepository.deleteAll();
         categoryRepository.deleteAll();
         platformRepository.deleteAll();
@@ -126,7 +126,7 @@ class CoreTrendingModelContractTest {
 
     @Test
     void trendingModelInfo_returnsRankingDataWithoutPlaceholders() throws Exception {
-        mockMvc.perform(get("/api/core/trending/model/{modelName}/info/", exactOnTrendingName))
+        mockMvc.perform(get("/api/core/trending/model/{modelName}/info", exactOnTrendingName))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("success"))
                 .andExpect(jsonPath("$.data.trending_name").value(exactOnTrendingName))
@@ -143,7 +143,7 @@ class CoreTrendingModelContractTest {
 
     @Test
     void trendingModelPosts_appliesExactMatchingWhenEnabled() throws Exception {
-        mockMvc.perform(get("/api/core/trending/model/{modelName}/posts/", exactOnTrendingName)
+        mockMvc.perform(get("/api/core/trending/model/{modelName}/posts", exactOnTrendingName)
                         .param("page", "1")
                         .param("page_size", "20")
                         .param("sort", "latest"))
@@ -155,7 +155,7 @@ class CoreTrendingModelContractTest {
 
     @Test
     void trendingModelPosts_returnsAllRelatedModelPostsWhenExactMatchingDisabled() throws Exception {
-        mockMvc.perform(get("/api/core/trending/model/{modelName}/posts/", exactOffTrendingName)
+        mockMvc.perform(get("/api/core/trending/model/{modelName}/posts", exactOffTrendingName)
                         .param("page", "1")
                         .param("page_size", "20")
                         .param("sort", "latest"))
@@ -169,11 +169,11 @@ class CoreTrendingModelContractTest {
 
     @Test
     void trendingModelEndpoints_returnLegacyCompatible404ContractsWhenModelMissing() throws Exception {
-        mockMvc.perform(get("/api/core/trending/model/{modelName}/posts/", "NOT_FOUND_MODEL"))
+        mockMvc.perform(get("/api/core/trending/model/{modelName}/posts", "NOT_FOUND_MODEL"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("해당 트렌딩 모델을 찾을 수 없습니다."));
 
-        mockMvc.perform(get("/api/core/trending/model/{modelName}/info/", "NOT_FOUND_MODEL"))
+        mockMvc.perform(get("/api/core/trending/model/{modelName}/info", "NOT_FOUND_MODEL"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("해당 트렌딩 모델을 찾을 수 없습니다."));
     }

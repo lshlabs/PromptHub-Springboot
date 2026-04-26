@@ -7,15 +7,45 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface AiModelRepository extends JpaRepository<AiModel, Long> {
-    List<AiModel> findByIsActiveTrueAndIsDeprecatedFalseOrderBySortOrderAscNameAsc();
+    @Query("""
+            select m
+              from AiModel m
+             where m.isActive = true
+               and m.isDeprecated = false
+             order by m.sortOrder asc, m.name asc
+            """)
+    List<AiModel> listAvailableModels();
 
-    List<AiModel> findByPlatformIdAndIsActiveTrueAndIsDeprecatedFalseOrderBySortOrderAscNameAsc(Long platformId);
+    @Query("""
+            select m
+              from AiModel m
+             where m.platform.id = :platformId
+               and m.isActive = true
+               and m.isDeprecated = false
+             order by m.sortOrder asc, m.name asc
+            """)
+    List<AiModel> findDisplayableByPlatformId(@Param("platformId") Long platformId);
 
-    List<AiModel> findTop10ByNameContainingIgnoreCaseAndIsActiveTrueAndIsDeprecatedFalseOrderBySortOrderAscNameAsc(
-            String query);
+    @Query("""
+            select m
+              from AiModel m
+             where lower(m.name) like lower(concat('%', :query, '%'))
+               and m.isActive = true
+               and m.isDeprecated = false
+             order by m.sortOrder asc, m.name asc
+            """)
+    List<AiModel> findModelSuggestions(@Param("query") String query);
 
-    List<AiModel> findTop10ByPlatformIdAndNameContainingIgnoreCaseAndIsActiveTrueAndIsDeprecatedFalseOrderBySortOrderAscNameAsc(
-            Long platformId, String query);
+    @Query("""
+            select m
+              from AiModel m
+             where m.platform.id = :platformId
+               and lower(m.name) like lower(concat('%', :query, '%'))
+               and m.isActive = true
+               and m.isDeprecated = false
+             order by m.sortOrder asc, m.name asc
+            """)
+    List<AiModel> suggestTop10ByPlatform(@Param("platformId") Long platformId, @Param("query") String query);
 
     @Query("""
             select m

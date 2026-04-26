@@ -64,6 +64,16 @@ public interface PostRepository extends JpaRepository<Post, Long>, JpaSpecificat
     @Query("select max(p.createdAt) from Post p where p.author = :author")
     Instant findLastPostDateByAuthor(@Param("author") AppUser author);
 
+    @Query("""
+            select t, count(t)
+              from Post p
+              join p.tags t
+             where trim(t) <> ''
+             group by t
+             order by count(t) desc
+            """)
+    List<Object[]> countTags();
+
     Page<Post> findByAuthor(AppUser author, Pageable pageable);
 
     Page<Post> findByTitleContainingIgnoreCase(String query, Pageable pageable);

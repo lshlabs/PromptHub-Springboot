@@ -57,14 +57,14 @@ class UserControllerIntegrationTest {
     private AuthTokenRepository authTokenRepository;
 
     @Autowired
-    private PostInteractionRepository postInteractionRepository;
+    private PostInteractionRepository postInteractionRepo;
 
     @Autowired
     private PostRepository postRepository;
 
     @BeforeEach
     void cleanUp() {
-        postInteractionRepository.deleteAll();
+        postInteractionRepo.deleteAll();
         postRepository.deleteAll();
         authTokenRepository.deleteAll();
         userSessionRepository.deleteAll();
@@ -82,14 +82,14 @@ class UserControllerIntegrationTest {
         createActiveSession(currentUser, "session-me-2", Instant.parse("2026-03-02T00:00:00Z"));
 
         mockMvc.perform(get("/api/auth/profile")
-                        .header("Authorization", "Token " + accessToken))
+                        .header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.user.username").value("me"))
                 .andExpect(jsonPath("$.settings").exists())
                 .andExpect(jsonPath("$.profile_completeness").exists());
 
         mockMvc.perform(patch("/api/auth/profile")
-                        .header("Authorization", "Token " + accessToken)
+                        .header("Authorization", "Bearer " + accessToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "username", "me-updated",
@@ -103,7 +103,7 @@ class UserControllerIntegrationTest {
                 .andExpect(jsonPath("$.user.github_handle").value("mehub"));
 
         mockMvc.perform(patch("/api/auth/profile/settings")
-                        .header("Authorization", "Token " + accessToken)
+                        .header("Authorization", "Bearer " + accessToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "public_profile", false,
@@ -114,7 +114,7 @@ class UserControllerIntegrationTest {
                 .andExpect(jsonPath("$.data_sharing").value(true));
 
                 mockMvc.perform(get("/api/auth/info")
-                        .header("Authorization", "Token " + accessToken))
+                        .header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(currentUser.getId()))
                 .andExpect(jsonPath("$.email").value("me@example.com"))
@@ -125,7 +125,7 @@ class UserControllerIntegrationTest {
                 .andExpect(jsonPath("$.created_at").isNotEmpty());
 
         mockMvc.perform(get("/api/auth/profile/sessions")
-                        .header("Authorization", "Token " + accessToken))
+                        .header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].key").value("session-me-2"))
                 .andExpect(jsonPath("$[1].key").value("session-me-1"));
@@ -139,7 +139,7 @@ class UserControllerIntegrationTest {
         createActiveSession(other, "other-session-1", Instant.now());
 
         mockMvc.perform(delete("/api/auth/profile/sessions")
-                        .header("Authorization", "Token " + accessToken)
+                        .header("Authorization", "Bearer " + accessToken)
                         .param("key", "other-session-1"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("해당 세션을 찾을 수 없습니다."));
@@ -151,7 +151,7 @@ class UserControllerIntegrationTest {
         String accessToken = issueAccessToken(currentUser);
 
         mockMvc.perform(get("/api/auth/users/me/summary")
-                        .header("Authorization", "Token " + accessToken))
+                        .header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasKey("username")))
                 .andExpect(jsonPath("$", hasKey("post_count")))
@@ -168,12 +168,12 @@ class UserControllerIntegrationTest {
         createSettings(currentUser);
 
         mockMvc.perform(delete("/api/auth/profile/delete")
-                        .header("Authorization", "Token " + accessToken))
+                        .header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("계정이 삭제되었습니다."));
 
         mockMvc.perform(get("/api/auth/profile")
-                        .header("Authorization", "Token " + accessToken))
+                        .header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isForbidden());
     }
 
@@ -186,7 +186,7 @@ class UserControllerIntegrationTest {
         createActiveSession(currentUser, "session-me-3", Instant.parse("2026-03-03T00:00:00Z"));
 
         mockMvc.perform(delete("/api/auth/profile/sessions")
-                        .header("Authorization", "Token " + accessToken)
+                        .header("Authorization", "Bearer " + accessToken)
                         .header("X-Session-Key", "session-me-3")
                         .param("all", "true"))
                 .andExpect(status().isOk())
@@ -194,7 +194,7 @@ class UserControllerIntegrationTest {
                 .andExpect(jsonPath("$.count").value(2));
 
         mockMvc.perform(get("/api/auth/profile/sessions")
-                        .header("Authorization", "Token " + accessToken))
+                        .header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].key").value("session-me-3"))
                 .andExpect(jsonPath("$[1]").doesNotExist());

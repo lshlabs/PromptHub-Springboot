@@ -115,7 +115,7 @@ const createApiClient = (): AxiosInstance => {
       })
 
       if (token) {
-        config.headers.Authorization = `Token ${token}`
+        config.headers.Authorization = `Bearer ${token}`
       }
       // 세션 키를 헤더로 전달해 서버가 현재 세션 식별 가능하도록 함
       if (typeof window !== 'undefined') {
@@ -290,9 +290,9 @@ export const authApi = {
     }
   },
 
-  /** TokenAuth 환경: 토큰 갱신 미지원 */
+  /** 토큰 갱신은 별도 refresh endpoint/flow에서 처리 */
   refreshToken: async (_refreshToken: string): Promise<TokenRefreshResponse> => {
-    throw new Error('Backend Token Auth 호환 레이어에서는 토큰 갱신 미지원')
+    throw new Error('프론트 공통 API 클라이언트에서는 토큰 갱신을 직접 처리하지 않습니다.')
   },
 
   /** 사용자 프로필 조회 */

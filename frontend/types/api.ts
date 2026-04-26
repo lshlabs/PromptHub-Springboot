@@ -1,10 +1,10 @@
 // ===========================================
 // API 타입 정의 - Spring Boot 백엔드 통신 기준
 // ===========================================
-// P2 호환 레이어(의도적 유지):
-// 1) Authorization 헤더는 기존 프론트 호환을 위해 `Authorization: Token ...` 형식 유지
-// 2) 일부 엔드포인트 URI는 trailing slash(`/`) 계약을 유지
-// 위 두 항목은 런타임 호환성 보장을 위한 의도적 레거시이며, 추후 표준화 단계에서 점진 전환한다.
+// 표준화된 API 계약:
+// 1) Authorization 헤더는 `Authorization: Bearer ...` 형식을 사용한다.
+// 2) 백엔드는 후행 슬래시 없는 canonical URI를 기준으로 처리한다.
+// 일부 프론트 상수에 남아 있는 trailing slash는 엣지 redirect를 통해 canonical URI로 정규화된다.
 
 // ===========================================
 // 공통 타입들
@@ -501,7 +501,7 @@ export interface ApiEndpoints {
   // Posts 앱
   posts: {
     list: '/api/posts/'
-    create: '/api/posts/create/'
+    create: '/api/posts/'
     detail: (id: number) => string
     update: (id: number) => string
     delete: (id: number) => string
@@ -696,10 +696,10 @@ export const API_ENDPOINTS: ApiEndpoints = {
   },
   posts: {
     list: '/api/posts/',
-    create: '/api/posts/create/',
+    create: '/api/posts/',
     detail: (id: number) => `/api/posts/${id}/`,
-    update: (id: number) => `/api/posts/${id}/update/`,
-    delete: (id: number) => `/api/posts/${id}/delete/`,
+    update: (id: number) => `/api/posts/${id}/`,
+    delete: (id: number) => `/api/posts/${id}/`,
     like: (id: number) => `/api/posts/${id}/like/`,
     bookmark: (id: number) => `/api/posts/${id}/bookmark/`,
     liked: '/api/posts/liked-posts/',

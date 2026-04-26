@@ -12,7 +12,14 @@ import java.util.Optional;
 public interface AuthTokenRepository extends JpaRepository<AuthToken, Long> {
     Optional<AuthToken> findByToken(String token);
 
-    Optional<AuthToken> findByTokenAndTokenTypeAndRevokedAtIsNull(String token, AuthTokenType tokenType);
+    @Query("""
+            select t
+              from AuthToken t
+             where t.token = :token
+               and t.tokenType = :tokenType
+               and t.revokedAt is null
+            """)
+    Optional<AuthToken> findValidByTokenAndType(@Param("token") String token, @Param("tokenType") AuthTokenType tokenType);
 
     @Modifying
     @Query("update AuthToken t set t.revokedAt = :now where t.user = :user and t.revokedAt is null")

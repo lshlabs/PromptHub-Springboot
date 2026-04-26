@@ -23,7 +23,6 @@ import org.springframework.cache.CacheManager;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
-import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -72,8 +71,8 @@ class CoreServiceTest {
         Category category = ensureCategory();
         AppUser author = saveUser("core_search_author");
 
-        savePost(author, platform, category, "검색테스트 제목 A", "태그A", new BigDecimal("4.8"));
-        savePost(author, platform, category, "검색테스트 제목 B", "태그B", new BigDecimal("3.2"));
+        savePost(author, platform, category, "검색테스트 제목 A", java.util.List.of("태그A"), new BigDecimal("4.8"));
+        savePost(author, platform, category, "검색테스트 제목 B", java.util.List.of("태그B"), new BigDecimal("3.2"));
 
         PostService.PostListResponse response = coreService.search(
                 "검색테스트", "latest", 1, 20, platform.getId(), category.getId(),
@@ -121,7 +120,7 @@ class CoreServiceTest {
         return appUserRepository.save(user);
     }
 
-    private Post savePost(AppUser author, Platform platform, Category category, String title, String tags,
+    private Post savePost(AppUser author, Platform platform, Category category, String title, java.util.List<String> tags,
             BigDecimal satisfaction) {
         Post post = new Post();
         post.setAuthor(author);

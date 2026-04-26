@@ -4,31 +4,34 @@ import com.lshlabs.prompthubspring.common.ApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.web.client.RestClientResponseException;
 import org.springframework.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtException;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 
 import java.time.Instant;
-import java.util.Map;
+import java.util.Collection;
+import java.util.Objects;
 
 @Component
 public class GoogleTokenVerifier {
     private static final Logger log = LoggerFactory.getLogger(GoogleTokenVerifier.class);
+    private static final String GOOGLE_JWK_SET_URI = "https://www.googleapis.com/oauth2/v3/certs";
 
     private final String expectedClientId;
-    private final RestClient restClient;
+    private final JwtDecoder jwtDecoder;
 
     @Autowired
-    public GoogleTokenVerifier(@Value("${app.security.google.client-id:}") String expectedClientId,
-            RestClient.Builder restClientBuilder) {
-        this(expectedClientId, restClientBuilder.baseUrl("https://oauth2.googleapis.com").build());
+    public GoogleTokenVerifier(@Value("${app.security.google.client-id:}") String expectedClientId) {
+        this(expectedClientId, NimbusJwtDecoder.withJwkSetUri(GOOGLE_JWK_SET_URI).build());
     }
 
-    GoogleTokenVerifier(String expectedClientId, RestClient restClient) {
+    GoogleTokenVerifier(String expectedClientId, JwtDecoder jwtDecoder) {
         this.expectedClientId = expectedClientId;
-        this.restClient = restClient;
+        this.jwtDecoder = jwtDecoder;
     }
 
     public GoogleUserPayload verify(String idToken) {
@@ -38,30 +41,24 @@ public class GoogleTokenVerifier {
 
         log.debug("Google token verification started.");
 
-        Map<String, Object> payload;
+        Jwt jwt;
         try {
-            payload = restClient.get()
-                    .uri(uriBuilder -> uriBuilder.path("/tokeninfo").queryParam("id_token", idToken).build()).retrieve()
-                    .body(Map.class);
-        } catch (RestClientResponseException e) {
-            log.warn("Google token verification rejected by provider. status={}, response={}",
-                    e.getRawStatusCode(), abbreviate(e.getResponseBodyAsString()));
-            if (e.getStatusCode().is4xxClientError()) {
-                throw new ApiException(HttpStatus.BAD_REQUEST, "유효하지 않은 Google 토큰입니다.");
-            }
-            throw new ApiException(HttpStatus.BAD_GATEWAY, "Google 토큰 검증 요청에 실패했습니다.");
-        } catch (Exception e) {
+            jwt = jwtDecoder.decode(idToken);
+        } catch (JwtException e) {
+            log.debug("Google token verification failed due to invalid JWT.", e);
+            throw new ApiException(HttpStatus.BAD_REQUEST, "유효하지 않은 Google 토큰입니다.");
+        } catch (RuntimeException e) {
             log.warn("Google token verification request failed due to upstream/network issue.", e);
             throw new ApiException(HttpStatus.BAD_GATEWAY, "Google 토큰 검증 요청에 실패했습니다.");
         }
 
-        String aud = str(payload.get("aud"));
-        String iss = str(payload.get("iss"));
-        String sub = str(payload.get("sub"));
-        String email = str(payload.get("email"));
-        String name = str(payload.get("name"));
-        boolean emailVerified = bool(payload.get("email_verified"));
-        long exp = longValue(payload.get("exp"));
+        Collection<String> audiences = jwt.getAudience();
+        String iss = jwt.getIssuer() == null ? null : jwt.getIssuer().toString();
+        String sub = jwt.getSubject();
+        String email = jwt.getClaimAsString("email");
+        String name = jwt.getClaimAsString("name");
+        boolean emailVerified = bool(jwt.getClaim("email_verified"));
+        Instant expiresAt = jwt.getExpiresAt();
 
         if (sub == null || sub.isBlank()) {
             log.debug("Google token verification failed: missing sub.");
@@ -75,25 +72,22 @@ public class GoogleTokenVerifier {
             log.debug("Google token verification failed: email_verified is false.");
             throw new ApiException(HttpStatus.BAD_REQUEST, "Google 토큰의 email_verified 검증에 실패했습니다.");
         }
-        if (exp > 0 && exp <= Instant.now().getEpochSecond()) {
-            log.debug("Google token verification failed: token expired. exp={}", exp);
+        if (expiresAt != null && !expiresAt.isAfter(Instant.now())) {
+            log.debug("Google token verification failed: token expired. exp={}", expiresAt);
             throw new ApiException(HttpStatus.BAD_REQUEST, "만료된 Google 토큰입니다.");
         }
-        if (expectedClientId != null && !expectedClientId.isBlank() && !expectedClientId.equals(aud)) {
+        if (expectedClientId != null && !expectedClientId.isBlank()
+                && (audiences == null || audiences.stream().noneMatch(expectedClientId::equals))) {
             log.debug("Google token verification failed: aud mismatch.");
             throw new ApiException(HttpStatus.BAD_REQUEST, "Google 토큰 aud가 유효하지 않습니다.");
         }
-        if (!("https://accounts.google.com".equals(iss) || "accounts.google.com".equals(iss))) {
+        if (!Objects.equals("https://accounts.google.com", iss) && !Objects.equals("accounts.google.com", iss)) {
             log.debug("Google token verification failed: iss mismatch.");
             throw new ApiException(HttpStatus.BAD_REQUEST, "Google 토큰 iss가 유효하지 않습니다.");
         }
 
         log.debug("Google token verification succeeded for subject={}", sub);
         return new GoogleUserPayload(sub, email, name == null || name.isBlank() ? email.split("@")[0] : name);
-    }
-
-    private String str(Object value) {
-        return value == null ? null : String.valueOf(value);
     }
 
     private boolean bool(Object value) {
@@ -105,25 +99,6 @@ public class GoogleTokenVerifier {
         }
         String normalized = String.valueOf(value).trim();
         return "true".equalsIgnoreCase(normalized) || "1".equals(normalized);
-    }
-
-    private long longValue(Object value) {
-        if (value == null) {
-            return -1L;
-        }
-        try {
-            return Long.parseLong(String.valueOf(value));
-        } catch (NumberFormatException e) {
-            return -1L;
-        }
-    }
-
-    private String abbreviate(String raw) {
-        if (raw == null) {
-            return "";
-        }
-        String compact = raw.replaceAll("\\s+", " ").trim();
-        return compact.length() <= 200 ? compact : compact.substring(0, 200) + "...";
     }
 
     public record GoogleUserPayload(String sub, String email, String name) {

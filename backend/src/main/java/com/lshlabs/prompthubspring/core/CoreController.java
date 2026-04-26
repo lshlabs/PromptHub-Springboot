@@ -35,7 +35,7 @@ public class CoreController {
             @RequestParam(value = "category", required = false) Long category,
             @RequestParam(value = "satisfaction_min", required = false) BigDecimal satisfactionMin,
             @RequestParam(value = "satisfaction_max", required = false) BigDecimal satisfactionMax) {
-        CoreService.SearchResult result = coreService.searchForCompatibilityContract(
+        CoreService.SearchResult result = coreService.searchWithLegacySchema(
                 q, searchType, sort, page, pageSize,
                 categories, platforms, models,
                 platform, category, satisfactionMin, satisfactionMax

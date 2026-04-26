@@ -50,8 +50,11 @@ public class Post {
     @Column(name = "category_etc", length = 100)
     private String categoryEtc;
 
-    @Column(length = 2000)
-    private String tags;
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(name = "post_tags", joinColumns = @JoinColumn(name = "post_id"))
+    @Column(name = "tag", length = 50)
+    @OrderColumn(name = "tag_order")
+    private java.util.List<String> tags = new java.util.ArrayList<>();
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String prompt;
@@ -97,5 +100,9 @@ public class Post {
         if (category != null && "기타".equals(category.getName()) && categoryEtc != null && !categoryEtc.isBlank())
             return categoryEtc;
         return category != null ? category.getName() : "";
+    }
+
+    public void setTags(java.util.List<String> tags) {
+        this.tags = tags == null ? new java.util.ArrayList<>() : new java.util.ArrayList<>(tags);
     }
 }

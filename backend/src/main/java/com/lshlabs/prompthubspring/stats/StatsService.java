@@ -15,17 +15,17 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 public class StatsService {
     private final PostRepository postRepository;
-    private final PostInteractionRepository postInteractionRepository;
+    private final PostInteractionRepository postInteractionRepo;
     private final AppUserRepository userRepository;
 
     @Cacheable(value = "stats", key = "'dashboard'", sync = true)
     public DashboardResponse dashboard() {
+        // sync=true로 동일 키의 동시 요청을 직렬화해 캐시 재계산 폭주를 방지한다.
         long totalPosts = postRepository.count();
         long totalUsers = userRepository.count();
         long totalViews = postRepository.sumViewCountAll();
@@ -73,10 +73,11 @@ public class StatsService {
     }
 
     public UserStatsResponse userStats(AppUser user) {
+        // 좋아요/북마크는 작성자 관점에서 "받은 수"를 집계한다.
         long postsCount = postRepository.countByAuthor(user);
         long totalViews = postRepository.sumViewCountByAuthor(user);
-        long totalLikes = postInteractionRepository.countLikedReceivedByAuthor(user);
-        long totalBookmarks = postInteractionRepository.countBookmarkedReceivedByAuthor(user);
+        long totalLikes = postInteractionRepo.countLikedReceivedByAuthor(user);
+        long totalBookmarks = postInteractionRepo.countBookmarkedReceivedByAuthor(user);
         double avgSatisfaction = scale(postRepository.avgSatisfactionByAuthor(user));
 
         String mostUsedPlatform = postRepository.findTopPlatformNamesByAuthor(user, PageRequest.of(0, 1)).stream()
@@ -86,8 +87,8 @@ public class StatsService {
 
         RecentActivityData recent = new RecentActivityData(
                 formatInstant(postRepository.findLastPostDateByAuthor(user)),
-                formatInstant(postInteractionRepository.findLastLikedAtByUser(user)),
-                formatInstant(postInteractionRepository.findLastBookmarkedAtByUser(user))
+                formatInstant(postInteractionRepo.findLastLikedAtByUser(user)),
+                formatInstant(postInteractionRepo.findLastBookmarkedAtByUser(user))
         );
 
         return new UserStatsResponse(
@@ -119,22 +120,9 @@ public class StatsService {
     }
 
     private List<TagCountData> extractPopularTags() {
-        Map<String, Long> counts = new java.util.LinkedHashMap<>();
-        for (Post p : postRepository.findAll()) {
-            if (p.getTags() == null || p.getTags().isBlank()) {
-                continue;
-            }
-            for (String tag : p.getTags().split(",")) {
-                String key = tag.trim();
-                if (!key.isBlank()) {
-                    counts.put(key, counts.getOrDefault(key, 0L) + 1);
-                }
-            }
-        }
-        return counts.entrySet().stream()
-                .sorted((a, b) -> Long.compare(b.getValue(), a.getValue()))
+        return postRepository.countTags().stream()
                 .limit(10)
-                .map(e -> new TagCountData(e.getKey(), e.getValue()))
+                .map(row -> new TagCountData(String.valueOf(row[0]), ((Number) row[1]).longValue()))
                 .toList();
     }
 

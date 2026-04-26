@@ -12,11 +12,25 @@ import java.util.Optional;
 public interface UserSessionRepository extends JpaRepository<UserSession, Long> {
     List<UserSession> findByUserOrderByLastActiveDesc(AppUser user);
 
-    List<UserSession> findByUserAndRevokedAtIsNullOrderByLastActiveDesc(AppUser user);
+    @Query("""
+            select s
+              from UserSession s
+             where s.user = :user
+               and s.revokedAt is null
+             order by s.lastActive desc
+            """)
+    List<UserSession> findActiveSessionsByUser(@Param("user") AppUser user);
 
     Optional<UserSession> findBySessionKeyAndUser(String sessionKey, AppUser user);
 
-    Optional<UserSession> findBySessionKeyAndUserAndRevokedAtIsNull(String sessionKey, AppUser user);
+    @Query("""
+            select s
+              from UserSession s
+             where s.sessionKey = :sessionKey
+               and s.user = :user
+               and s.revokedAt is null
+            """)
+    Optional<UserSession> findActiveBySessionKeyAndUser(@Param("sessionKey") String sessionKey, @Param("user") AppUser user);
 
     @Modifying
     @Query("""

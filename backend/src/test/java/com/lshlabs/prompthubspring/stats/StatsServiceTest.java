@@ -57,7 +57,7 @@ class StatsServiceTest {
     @Autowired
     private PostRepository postRepository;
     @Autowired
-    private PostInteractionRepository postInteractionRepository;
+    private PostInteractionRepository postInteractionRepo;
     @Autowired
     private PlatformRepository platformRepository;
     @Autowired
@@ -65,7 +65,7 @@ class StatsServiceTest {
 
     @AfterEach
     void tearDown() {
-        postInteractionRepository.deleteAll();
+        postInteractionRepo.deleteAll();
         postRepository.deleteAll();
         authTokenRepository.deleteAll();
         userSessionRepository.deleteAll();
@@ -83,8 +83,8 @@ class StatsServiceTest {
         Category category = ensureCategory();
         AppUser author = saveUser("stats_stats_author");
 
-        Post firstPost = savePost(author, platform, category, "대시보드 포스트1", 101, 10, 5, new BigDecimal("4.5"));
-        Post secondPost = savePost(author, platform, category, "대시보드 포스트2", 99, 7, 3, new BigDecimal("3.5"));
+        savePost(author, platform, category, "대시보드 포스트1", 101, 10, 5, new BigDecimal("4.5"));
+        savePost(author, platform, category, "대시보드 포스트2", 99, 7, 3, new BigDecimal("3.5"));
 
         StatsService.DashboardResponse response = statsService.dashboard();
         StatsService.DashboardData data = response.data();
@@ -157,11 +157,11 @@ class StatsServiceTest {
         interaction.setPost(post);
         interaction.setLiked(true);
         interaction.setBookmarked(true);
-        interaction = postInteractionRepository.save(interaction);
+        interaction = postInteractionRepo.save(interaction);
 
         Instant futureCreatedAt = Instant.now().plus(2, ChronoUnit.DAYS);
         ReflectionTestUtils.setField(interaction, "createdAt", futureCreatedAt);
-        postInteractionRepository.save(interaction);
+        postInteractionRepo.save(interaction);
 
         StatsService.UserStatsResponse response = statsService.userStats(actor);
         StatsService.RecentActivityData recent = response.data().recent_activity();
@@ -197,7 +197,7 @@ class StatsServiceTest {
         post.setTitle(title);
         post.setPrompt("stats prompt 본문입니다.");
         post.setAiResponse("stats ai response 본문입니다.");
-        post.setTags("tag1,tag2");
+        post.setTags(java.util.List.of("tag1", "tag2"));
         post.setViewCount(views);
         post.setLikeCount(likes);
         post.setBookmarkCount(bookmarks);
@@ -211,7 +211,7 @@ class StatsServiceTest {
         pi.setPost(post);
         pi.setLiked(liked);
         pi.setBookmarked(bookmarked);
-        postInteractionRepository.save(pi);
+        postInteractionRepo.save(pi);
     }
 
     private Platform ensurePlatform() {

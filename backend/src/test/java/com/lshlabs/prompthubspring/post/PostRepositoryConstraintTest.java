@@ -30,7 +30,7 @@ class PostRepositoryConstraintTest {
     @Autowired
     private AppUserRepository appUserRepository;
     @Autowired
-    private PostInteractionRepository postInteractionRepository;
+    private PostInteractionRepository postInteractionRepo;
     @Autowired
     private AiModelRepository aiModelRepository;
     @Autowired
@@ -40,7 +40,7 @@ class PostRepositoryConstraintTest {
 
     @BeforeEach
     void cleanUp() {
-        postInteractionRepository.deleteAll();
+        postInteractionRepo.deleteAll();
         postRepository.deleteAll();
         aiModelRepository.deleteAll();
         platformRepository.deleteAll();

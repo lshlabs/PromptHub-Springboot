@@ -1,10 +1,11 @@
 package com.lshlabs.prompthubspring.post;
 
+import com.lshlabs.prompthubspring.common.ApiException;
 import com.lshlabs.prompthubspring.security.AuthSupport;
 import com.lshlabs.prompthubspring.user.AppUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,32 +16,32 @@ public class PostController {
     private final PostService postService;
     private final AuthSupport authSupport;
 
-    @GetMapping({ "/platforms", "/platforms/" })
+    @GetMapping("/platforms")
     public ResponseEntity<PostService.PlatformsResponse> platforms() {
         return ResponseEntity.ok(postService.listPlatforms());
     }
 
-    @GetMapping({ "/models", "/models/" })
+    @GetMapping("/models")
     public ResponseEntity<PostService.ModelsResponse> models(@RequestParam(value = "platform_id", required = false) Long platformId) {
         return ResponseEntity.ok(postService.listModels(platformId));
     }
 
-    @GetMapping({ "/platforms/{platformId}/models", "/platforms/{platformId}/models/" })
+    @GetMapping("/platforms/{platformId}/models")
     public ResponseEntity<PostService.PlatformModelsResponse> platformModels(@PathVariable Long platformId) {
         return ResponseEntity.ok(postService.platformModelsWithDefault(platformId));
     }
 
-    @GetMapping({ "/categories", "/categories/" })
+    @GetMapping("/categories")
     public ResponseEntity<PostService.CategoriesResponse> categories() {
         return ResponseEntity.ok(postService.listCategories());
     }
 
-    @GetMapping({ "/tags", "/tags/" })
+    @GetMapping("/tags")
     public ResponseEntity<PostService.TagsResponse> tags() {
         return ResponseEntity.ok(postService.listTags());
     }
 
-    @GetMapping({ "", "/" })
+    @GetMapping("")
     public ResponseEntity<PostService.PostListResponse> list(@RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "page_size", defaultValue = "10") int pageSize,
             @RequestParam(value = "search", required = false) String search,
@@ -69,81 +70,66 @@ public class PostController {
         ));
     }
 
-    @GetMapping({ "/{postId}", "/{postId}/" })
+    @GetMapping("/{postId}")
     public ResponseEntity<PostService.PostDetailResponse> detail(@PathVariable Long postId) {
         return ResponseEntity.ok(postService.detail(postId, currentUserOrNull()));
     }
 
-    @PostMapping({ "", "/" })
-    public ResponseEntity<PostService.PostMutationResponse> createCanonical(@Valid @RequestBody PostUpsertRequest payload) {
-        return createInternal(payload, false);
-    }
-
-    @PostMapping({ "/create", "/create/" })
+    @PostMapping("")
     public ResponseEntity<PostService.PostMutationResponse> create(@Valid @RequestBody PostUpsertRequest payload) {
-        return createInternal(payload, true);
+        return ResponseEntity.status(201).body(postService.create(authSupport.currentUserOrThrow(), payload));
     }
 
-    @PutMapping({ "/{postId}", "/{postId}/" })
+    @PutMapping("/{postId}")
     public ResponseEntity<PostService.PostMutationResponse> updatePutCanonical(
             @PathVariable Long postId,
             @Valid @RequestBody PostUpsertRequest payload
     ) {
-        return updateInternal(postId, payload, false);
+        return ResponseEntity.ok(postService.update(authSupport.currentUserOrThrow(), postId, payload));
     }
 
-    @PatchMapping({ "/{postId}", "/{postId}/" })
+    @PatchMapping("/{postId}")
     public ResponseEntity<PostService.PostMutationResponse> updatePatchCanonical(
             @PathVariable Long postId,
             @Valid @RequestBody PostUpsertRequest payload
     ) {
-        return updateInternal(postId, payload, false);
+        return ResponseEntity.ok(postService.update(authSupport.currentUserOrThrow(), postId, payload));
     }
 
-    @RequestMapping(value = { "/{postId}/update", "/{postId}/update/" }, method = { RequestMethod.PUT, RequestMethod.PATCH })
-    public ResponseEntity<PostService.PostMutationResponse> update(@PathVariable Long postId, @Valid @RequestBody PostUpsertRequest payload) {
-        return updateInternal(postId, payload, true);
-    }
-
-    @DeleteMapping({ "/{postId}", "/{postId}/" })
-    public ResponseEntity<PostService.MessageResponse> deleteCanonical(@PathVariable Long postId) {
-        return deleteInternal(postId, false);
-    }
-
-    @DeleteMapping({ "/{postId}/delete", "/{postId}/delete/" })
+    @DeleteMapping("/{postId}")
     public ResponseEntity<PostService.MessageResponse> delete(@PathVariable Long postId) {
-        return deleteInternal(postId, true);
+        return ResponseEntity.ok(postService.delete(authSupport.currentUserOrThrow(), postId));
     }
 
-    @PostMapping({ "/{postId}/like", "/{postId}/like/" })
+    @PostMapping("/{postId}/like")
     public ResponseEntity<PostService.ToggleLikeResponse> like(@PathVariable Long postId) {
         return ResponseEntity.ok(postService.toggleLike(authSupport.currentUserOrThrow(), postId));
     }
 
-    @PostMapping({ "/{postId}/bookmark", "/{postId}/bookmark/" })
+    @PostMapping("/{postId}/bookmark")
     public ResponseEntity<PostService.ToggleBookmarkResponse> bookmark(@PathVariable Long postId) {
         return ResponseEntity.ok(postService.toggleBookmark(authSupport.currentUserOrThrow(), postId));
     }
 
-    @GetMapping({ "/liked-posts", "/liked-posts/" })
+    @GetMapping("/liked-posts")
     public ResponseEntity<PostService.PostListResponse> liked(@RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "page_size", defaultValue = "20") int pageSize) {
         return ResponseEntity.ok(postService.liked(authSupport.currentUserOrThrow(), page, pageSize));
     }
 
-    @GetMapping({ "/bookmarked-posts", "/bookmarked-posts/" })
+    @GetMapping("/bookmarked-posts")
     public ResponseEntity<PostService.PostListResponse> bookmarked(@RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "page_size", defaultValue = "20") int pageSize) {
         return ResponseEntity.ok(postService.bookmarked(authSupport.currentUserOrThrow(), page, pageSize));
     }
 
-    @GetMapping({ "/my-posts", "/my-posts/" })
+    @GetMapping("/my-posts")
     public ResponseEntity<PostService.PostListResponse> myPosts(@RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "page_size", defaultValue = "20") int pageSize) {
         return ResponseEntity.ok(postService.myPosts(authSupport.currentUserOrThrow(), page, pageSize));
     }
 
-    @GetMapping({ "/models/suggest", "/models/suggest/" })
+    @GetMapping("/models/suggest")
     public ResponseEntity<PostService.SuggestResponse> suggestModels(@RequestParam("query") String query,
             @RequestParam(value = "platform_id", required = false) Long platformId) {
         return ResponseEntity.ok(postService.suggestModels(query, platformId));
@@ -152,33 +138,12 @@ public class PostController {
     private AppUser currentUserOrNull() {
         try {
             return authSupport.currentUserOrThrow();
-        } catch (Exception ignored) {
-            return null;
+        } catch (ApiException exception) {
+            if (exception.getStatus() == HttpStatus.UNAUTHORIZED) {
+                return null;
+            }
+            throw exception;
         }
     }
 
-    private ResponseEntity<PostService.PostMutationResponse> createInternal(PostUpsertRequest payload, boolean legacyAlias) {
-        ResponseEntity.BodyBuilder builder = ResponseEntity.status(201);
-        if (legacyAlias) {
-            builder.header(HttpHeaders.WARNING, "299 - Deprecated legacy endpoint, use POST /api/posts");
-        }
-        return builder.body(postService.create(authSupport.currentUserOrThrow(), payload));
-    }
-
-    private ResponseEntity<PostService.PostMutationResponse> updateInternal(Long postId, PostUpsertRequest payload,
-            boolean legacyAlias) {
-        ResponseEntity.BodyBuilder builder = ResponseEntity.ok();
-        if (legacyAlias) {
-            builder.header(HttpHeaders.WARNING, "299 - Deprecated legacy endpoint, use PUT/PATCH /api/posts/{postId}");
-        }
-        return builder.body(postService.update(authSupport.currentUserOrThrow(), postId, payload));
-    }
-
-    private ResponseEntity<PostService.MessageResponse> deleteInternal(Long postId, boolean legacyAlias) {
-        ResponseEntity.BodyBuilder builder = ResponseEntity.ok();
-        if (legacyAlias) {
-            builder.header(HttpHeaders.WARNING, "299 - Deprecated legacy endpoint, use DELETE /api/posts/{postId}");
-        }
-        return builder.body(postService.delete(authSupport.currentUserOrThrow(), postId));
-    }
 }

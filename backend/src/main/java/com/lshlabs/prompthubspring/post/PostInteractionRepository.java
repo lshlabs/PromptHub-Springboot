@@ -13,9 +13,23 @@ import java.util.Optional;
 public interface PostInteractionRepository extends JpaRepository<PostInteraction, Long> {
     Optional<PostInteraction> findByUserAndPost(AppUser user, Post post);
 
-    Page<PostInteraction> findByUserAndLikedTrueOrderByUpdatedAtDescIdDesc(AppUser user, Pageable pageable);
+    @Query("""
+            select pi
+              from PostInteraction pi
+             where pi.user = :user
+               and pi.liked = true
+             order by pi.updatedAt desc, pi.id desc
+            """)
+    Page<PostInteraction> findRecentLikesByUser(@Param("user") AppUser user, Pageable pageable);
 
-    Page<PostInteraction> findByUserAndBookmarkedTrueOrderByUpdatedAtDescIdDesc(AppUser user, Pageable pageable);
+    @Query("""
+            select pi
+              from PostInteraction pi
+             where pi.user = :user
+               and pi.bookmarked = true
+             order by pi.updatedAt desc, pi.id desc
+            """)
+    Page<PostInteraction> findRecentBookmarksByUser(@Param("user") AppUser user, Pageable pageable);
 
     long countByPostAndLikedTrue(Post post);
 

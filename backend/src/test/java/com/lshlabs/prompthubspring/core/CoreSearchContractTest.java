@@ -48,7 +48,7 @@ class CoreSearchContractTest {
     @Autowired
     private MockMvc mockMvc;
     @Autowired
-    private PostInteractionRepository postInteractionRepository;
+    private PostInteractionRepository postInteractionRepo;
     @Autowired
     private PostRepository postRepository;
     @Autowired
@@ -68,7 +68,7 @@ class CoreSearchContractTest {
 
     @AfterEach
     void tearDown() {
-        postInteractionRepository.deleteAll();
+        postInteractionRepo.deleteAll();
         postRepository.deleteAll();
         aiModelRepository.deleteAll();
         platformRepository.deleteAll();
@@ -80,7 +80,6 @@ class CoreSearchContractTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void coreSearch_supportsCompatibilitySearchTypeCsvFiltersAndSort() throws Exception {
         AppUser authorMatch = saveUser("core_writer_keyword");
         AppUser authorOther = saveUser("core_other");
@@ -108,7 +107,7 @@ class CoreSearchContractTest {
                 "prompt body", "ai body", "custom-model", null,
                 1, 0, 0, new BigDecimal("2.5"), Instant.now().minus(5, ChronoUnit.DAYS));
 
-        MvcResult titleSearch = mockMvc.perform(get("/api/core/search/")
+        MvcResult titleSearch = mockMvc.perform(get("/api/core/search")
                         .param("q", "Alpha")
                         .param("search_type", "title"))
                 .andExpect(status().isOk())
@@ -118,7 +117,7 @@ class CoreSearchContractTest {
         assertEquals(1, titleResults.size());
         assertEquals(titlePost.getId().intValue(), ((Number) titleResults.get(0).get("id")).intValue());
 
-        MvcResult contentSearch = mockMvc.perform(get("/api/core/search/")
+        MvcResult contentSearch = mockMvc.perform(get("/api/core/search")
                         .param("q", "needle-content")
                         .param("search_type", "content"))
                 .andExpect(status().isOk())
@@ -127,7 +126,7 @@ class CoreSearchContractTest {
         assertEquals(1, contentResults.size());
         assertEquals(contentPost.getId().intValue(), ((Number) contentResults.get(0).get("id")).intValue());
 
-        MvcResult authorSearch = mockMvc.perform(get("/api/core/search/")
+        MvcResult authorSearch = mockMvc.perform(get("/api/core/search")
                         .param("q", "core_writer_keyword")
                         .param("search_type", "author"))
                 .andExpect(status().isOk())
@@ -136,7 +135,7 @@ class CoreSearchContractTest {
         assertEquals(1, authorResults.size());
         assertEquals(authorPost.getId().intValue(), ((Number) authorResults.get(0).get("id")).intValue());
 
-        MvcResult titleContentSearch = mockMvc.perform(get("/api/core/search/")
+        MvcResult titleContentSearch = mockMvc.perform(get("/api/core/search")
                         .param("q", "needle-content")
                         .param("search_type", "title_content"))
                 .andExpect(status().isOk())
@@ -146,7 +145,7 @@ class CoreSearchContractTest {
         assertEquals(1, titleContentResults.size());
         assertEquals(contentPost.getId().intValue(), ((Number) titleContentResults.get(0).get("id")).intValue());
 
-        MvcResult allSearch = mockMvc.perform(get("/api/core/search/")
+        MvcResult allSearch = mockMvc.perform(get("/api/core/search")
                         .param("q", "core_writer_keyword")
                         .param("search_type", "all"))
                 .andExpect(status().isOk())
@@ -155,28 +154,28 @@ class CoreSearchContractTest {
         assertEquals(1, allResults.size());
         assertEquals(authorPost.getId().intValue(), ((Number) allResults.get(0).get("id")).intValue());
 
-        MvcResult latestSort = mockMvc.perform(get("/api/core/search/")
+        MvcResult latestSort = mockMvc.perform(get("/api/core/search")
                         .param("sort", "latest"))
                 .andExpect(status().isOk())
                 .andReturn();
         List<Map<String, Object>> latestResults = JsonPath.read(latestSort.getResponse().getContentAsString(), "$.results");
         assertEquals(titlePost.getId().intValue(), ((Number) latestResults.get(0).get("id")).intValue());
 
-        MvcResult oldestSort = mockMvc.perform(get("/api/core/search/")
+        MvcResult oldestSort = mockMvc.perform(get("/api/core/search")
                         .param("sort", "oldest"))
                 .andExpect(status().isOk())
                 .andReturn();
         List<Map<String, Object>> oldestResults = JsonPath.read(oldestSort.getResponse().getContentAsString(), "$.results");
         assertEquals(etcModelPost.getId().intValue(), ((Number) oldestResults.get(0).get("id")).intValue());
 
-        MvcResult popularSort = mockMvc.perform(get("/api/core/search/")
+        MvcResult popularSort = mockMvc.perform(get("/api/core/search")
                         .param("sort", "popular"))
                 .andExpect(status().isOk())
                 .andReturn();
         List<Map<String, Object>> popularResults = JsonPath.read(popularSort.getResponse().getContentAsString(), "$.results");
         assertEquals(contentPost.getId().intValue(), ((Number) popularResults.get(0).get("id")).intValue());
 
-        MvcResult satisfactionSort = mockMvc.perform(get("/api/core/search/")
+        MvcResult satisfactionSort = mockMvc.perform(get("/api/core/search")
                         .param("sort", "satisfaction"))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -184,14 +183,14 @@ class CoreSearchContractTest {
                 satisfactionSort.getResponse().getContentAsString(), "$.results");
         assertEquals(contentPost.getId().intValue(), ((Number) satisfactionResults.get(0).get("id")).intValue());
 
-        MvcResult viewsSort = mockMvc.perform(get("/api/core/search/")
+        MvcResult viewsSort = mockMvc.perform(get("/api/core/search")
                         .param("sort", "views"))
                 .andExpect(status().isOk())
                 .andReturn();
         List<Map<String, Object>> viewsResults = JsonPath.read(viewsSort.getResponse().getContentAsString(), "$.results");
         assertEquals(contentPost.getId().intValue(), ((Number) viewsResults.get(0).get("id")).intValue());
 
-        MvcResult categoryFilter = mockMvc.perform(get("/api/core/search/")
+        MvcResult categoryFilter = mockMvc.perform(get("/api/core/search")
                         .param("categories", etcCategory.getId().toString()))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -199,7 +198,7 @@ class CoreSearchContractTest {
         assertEquals(1, categoryResults.size());
         assertEquals(etcCategoryPost.getId().intValue(), ((Number) categoryResults.get(0).get("id")).intValue());
 
-        MvcResult multiCategoryFilter = mockMvc.perform(get("/api/core/search/")
+        MvcResult multiCategoryFilter = mockMvc.perform(get("/api/core/search")
                         .param("categories", generalCategory.getId() + "," + etcCategory.getId()))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -207,7 +206,7 @@ class CoreSearchContractTest {
                 multiCategoryFilter.getResponse().getContentAsString(), "$.total_count");
         assertTrue(multiCategoryTotalCount >= 5);
 
-        MvcResult modelFilter = mockMvc.perform(get("/api/core/search/")
+        MvcResult modelFilter = mockMvc.perform(get("/api/core/search")
                         .param("models", etcModel.getId().toString()))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -215,7 +214,7 @@ class CoreSearchContractTest {
         assertEquals(1, modelResults.size());
         assertEquals(etcModelPost.getId().intValue(), ((Number) modelResults.get(0).get("id")).intValue());
 
-        MvcResult multiModelFilter = mockMvc.perform(get("/api/core/search/")
+        MvcResult multiModelFilter = mockMvc.perform(get("/api/core/search")
                         .param("models", defaultModel.getId() + "," + etcModel.getId()))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -223,7 +222,7 @@ class CoreSearchContractTest {
                 multiModelFilter.getResponse().getContentAsString(), "$.total_count");
         assertTrue(multiModelTotalCount >= 5);
 
-        MvcResult platformFilter = mockMvc.perform(get("/api/core/search/")
+        MvcResult platformFilter = mockMvc.perform(get("/api/core/search")
                         .param("platforms", anthropicPlatform.getId().toString()))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -232,7 +231,7 @@ class CoreSearchContractTest {
         assertEquals(authorPost.getId().intValue(), ((Number) platformResults.get(0).get("id")).intValue());
 
         // 하위 호환 alias: platform/category 단일 파라미터도 동작
-        MvcResult singleAlias = mockMvc.perform(get("/api/core/search/")
+        MvcResult singleAlias = mockMvc.perform(get("/api/core/search")
                         .param("platform", anthropicPlatform.getId().toString())
                         .param("category", generalCategory.getId().toString()))
                 .andExpect(status().isOk())
@@ -293,7 +292,7 @@ class CoreSearchContractTest {
         post.setAiResponse(aiResponse);
         post.setModelEtc(modelEtc);
         post.setCategoryEtc(categoryEtc);
-        post.setTags("tag1,tag2");
+        post.setTags(java.util.List.of("tag1", "tag2"));
         post.setViewCount(views);
         post.setLikeCount(likes);
         post.setBookmarkCount(bookmarks);

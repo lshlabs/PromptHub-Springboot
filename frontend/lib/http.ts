@@ -42,7 +42,7 @@ const parseResponsePayload = async (response: Response): Promise<unknown> => {
 }
 
 export const tokenAuthHeaders = (token: string): HeadersInit => ({
-  Authorization: `Token ${token}`,
+  Authorization: `Bearer ${token}`,
   'Content-Type': 'application/json',
 })
 

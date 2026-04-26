@@ -40,13 +40,13 @@ class UserPublicProfileMaskingTest {
     @Autowired
     private AuthTokenRepository authTokenRepository;
     @Autowired
-    private PostInteractionRepository postInteractionRepository;
+    private PostInteractionRepository postInteractionRepo;
     @Autowired
     private PostRepository postRepository;
 
     @BeforeEach
     void cleanUp() {
-        postInteractionRepository.deleteAll();
+        postInteractionRepo.deleteAll();
         postRepository.deleteAll();
         authTokenRepository.deleteAll();
         userSessionRepository.deleteAll();
@@ -61,7 +61,7 @@ class UserPublicProfileMaskingTest {
         String accessToken = issueAccessToken(privateUser);
 
         mockMvc.perform(get("/api/auth/users/{username}/summary", "private-user")
-                        .header("Authorization", "Token " + accessToken))
+                        .header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value("private-user"))
                 .andExpect(jsonPath("$.bio").isEmpty())
@@ -74,14 +74,14 @@ class UserPublicProfileMaskingTest {
         createSettings(publicUser, true);
 
         mockMvc.perform(get("/api/auth/users/{username}/summary", "public-user")
-                        .header("Authorization", "Token " + accessToken))
+                        .header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value("public-user"))
                 .andExpect(jsonPath("$.bio").value("public bio"));
 
-        AppUser defaultUser = createUser("default@example.com", "default-user", "default bio");
+        createUser("default@example.com", "default-user", "default bio");
         mockMvc.perform(get("/api/auth/users/{username}/summary", "default-user")
-                        .header("Authorization", "Token " + accessToken))
+                        .header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value("default-user"))
                 .andExpect(jsonPath("$.bio").value("default bio"));

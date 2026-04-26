@@ -72,7 +72,7 @@ class AuthServiceRefreshTest {
         user.setEmail("user@example.com");
         user.setUsername("user1");
 
-        when(authTokenRepository.findByTokenAndTokenTypeAndRevokedAtIsNull(oldRefresh, AuthTokenType.REFRESH))
+        when(authTokenRepository.findValidByTokenAndType(oldRefresh, AuthTokenType.REFRESH))
                 .thenReturn(Optional.of(stored));
         when(jwtProvider.isValidRefreshToken(oldRefresh)).thenReturn(true);
         when(jwtProvider.parseRefreshToken(oldRefresh)).thenReturn(1L);
@@ -106,7 +106,7 @@ class AuthServiceRefreshTest {
         stored.setTokenType(AuthTokenType.REFRESH);
         stored.setExpiresAt(Instant.now().minusSeconds(1));
 
-        when(authTokenRepository.findByTokenAndTokenTypeAndRevokedAtIsNull(oldRefresh, AuthTokenType.REFRESH))
+        when(authTokenRepository.findValidByTokenAndType(oldRefresh, AuthTokenType.REFRESH))
                 .thenReturn(Optional.of(stored));
         when(jwtProvider.isValidRefreshToken(oldRefresh)).thenReturn(true);
 
@@ -131,7 +131,7 @@ class AuthServiceRefreshTest {
         ApiException exception = assertThrows(ApiException.class, () -> authService.refresh(" "));
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
-        verify(authTokenRepository, never()).findByTokenAndTokenTypeAndRevokedAtIsNull(anyString(), any());
+        verify(authTokenRepository, never()).findValidByTokenAndType(anyString(), any());
     }
 
     @Test
@@ -151,7 +151,7 @@ class AuthServiceRefreshTest {
         ApiException exception = assertThrows(ApiException.class, () -> authService.refresh(refreshToken));
 
         assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatus());
-        verify(authTokenRepository, never()).findByTokenAndTokenTypeAndRevokedAtIsNull(anyString(), any());
+        verify(authTokenRepository, never()).findValidByTokenAndType(anyString(), any());
     }
 
     @Test
@@ -176,7 +176,7 @@ class AuthServiceRefreshTest {
         stored.setUser(storedUser);
 
         when(jwtProvider.isValidRefreshToken(refreshToken)).thenReturn(true);
-        when(authTokenRepository.findByTokenAndTokenTypeAndRevokedAtIsNull(refreshToken, AuthTokenType.REFRESH))
+        when(authTokenRepository.findValidByTokenAndType(refreshToken, AuthTokenType.REFRESH))
                 .thenReturn(Optional.of(stored));
         when(jwtProvider.parseRefreshToken(refreshToken)).thenReturn(200L);
 

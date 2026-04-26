@@ -49,7 +49,7 @@ class CoreOptionsContractTest {
     @Autowired
     private MockMvc mockMvc;
     @Autowired
-    private PostInteractionRepository postInteractionRepository;
+    private PostInteractionRepository postInteractionRepo;
     @Autowired
     private PostRepository postRepository;
     @Autowired
@@ -69,7 +69,7 @@ class CoreOptionsContractTest {
 
     @AfterEach
     void tearDown() {
-        postInteractionRepository.deleteAll();
+        postInteractionRepo.deleteAll();
         postRepository.deleteAll();
         aiModelRepository.deleteAll();
         platformRepository.deleteAll();
@@ -89,7 +89,7 @@ class CoreOptionsContractTest {
         saveModel(openAiPlatform, "GPT-5.2");
         saveModel(anthropicPlatform, "Claude Sonnet 4.6");
 
-        mockMvc.perform(get("/api/core/sort-options/"))
+        mockMvc.perform(get("/api/core/sort-options"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.sort_options.latest").value("최신순"))
                 .andExpect(jsonPath("$.sort_options.oldest").value("오래된순"))
@@ -98,7 +98,7 @@ class CoreOptionsContractTest {
                 .andExpect(jsonPath("$.sort_options.views").value("조회순"))
                 .andExpect(jsonPath("$.default").value("latest"));
 
-        MvcResult filterResult = mockMvc.perform(get("/api/core/filter-options/"))
+        MvcResult filterResult = mockMvc.perform(get("/api/core/filter-options"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasKey("platforms")))
                 .andExpect(jsonPath("$", hasKey("categories")))

@@ -35,8 +35,8 @@ public class PostService {
 
     public ModelsResponse listModels(Long platformId) {
         List<AiModel> models = platformId == null
-                ? aiModelRepository.findByIsActiveTrueAndIsDeprecatedFalseOrderBySortOrderAscNameAsc()
-                : aiModelRepository.findByPlatformIdAndIsActiveTrueAndIsDeprecatedFalseOrderBySortOrderAscNameAsc(platformId);
+                ? aiModelRepository.listAvailableModels()
+                : aiModelRepository.findDisplayableByPlatformId(platformId);
         List<ModelData> data = models.stream().map(this::toModel).toList();
         return new ModelsResponse("success", data, data.isEmpty() ? null : data.get(0));
     }
@@ -45,7 +45,7 @@ public class PostService {
         Platform platform = platformRepository.findById(platformId)
                 .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "유효하지 않은 플랫폼 ID입니다."));
         List<ModelData> models = aiModelRepository
-                .findByPlatformIdAndIsActiveTrueAndIsDeprecatedFalseOrderBySortOrderAscNameAsc(platformId)
+                .findDisplayableByPlatformId(platformId)
                 .stream()
                 .map(this::toModel)
                 .toList();
@@ -66,27 +66,14 @@ public class PostService {
     }
 
     public TagsResponse listTags() {
-        Map<String, Long> counts = new HashMap<>();
-        for (Post post : postRepository.findAll()) {
-            if (post.getTags() == null || post.getTags().isBlank()) {
-                continue;
-            }
-            for (String tag : post.getTags().split(",")) {
-                String normalized = tag.trim();
-                if (!normalized.isBlank()) {
-                    counts.put(normalized, counts.getOrDefault(normalized, 0L) + 1);
-                }
-            }
-        }
-
-        List<TagCountData> data = counts.entrySet().stream()
-                .sorted((a, b) -> Long.compare(b.getValue(), a.getValue()))
-                .map(e -> new TagCountData(e.getKey(), e.getValue()))
+        List<TagCountData> data = postRepository.countTags().stream()
+                .map(row -> new TagCountData(String.valueOf(row[0]), ((Number) row[1]).longValue()))
                 .toList();
 
         return new TagsResponse("success", data);
     }
 
+    @Transactional(readOnly = true)
     public PostListResponse listPosts(AppUser user, int page, int size,
             String search, String searchType,
             String sortBy, Long excludeId,
@@ -123,8 +110,9 @@ public class PostService {
                         cb.like(cb.lower(root.get("prompt")), like),
                         cb.like(cb.lower(root.get("aiResponse")), like),
                         cb.like(cb.lower(cb.coalesce(root.get("additionalOpinion"), "")), like),
-                        cb.like(cb.lower(cb.coalesce(root.get("tags"), "")), like)
+                        buildTagContainsPredicate(root, query, cb, like)
                 );
+                // 레거시 계약(search_type)에 맞춰 검색 범위를 동적으로 바꾼다.
                 predicates.add(switch (normalizedSearchType) {
                     case "title" -> titlePredicate;
                     case "content" -> contentPredicate;
@@ -169,6 +157,7 @@ public class PostService {
         return pageResult(postRepository.findAll(specification, pageable), user);
     }
 
+    @Transactional(readOnly = true)
     public PostListResponse searchPosts(AppUser user, int page, int size, String q, String sort,
             Long platformId, Long categoryId, BigDecimal satisfactionMin, BigDecimal satisfactionMax) {
         Pageable pageable = PageRequest.of(Math.max(page - 1, 0), Math.max(size, 1), resolveSort(sort));
@@ -180,7 +169,7 @@ public class PostService {
                         cb.like(cb.lower(root.get("title")), keyword),
                         cb.like(cb.lower(root.get("prompt")), keyword),
                         cb.like(cb.lower(root.get("aiResponse")), keyword),
-                        cb.like(cb.lower(root.get("tags")), keyword)
+                        buildTagContainsPredicate(root, query, cb, keyword)
                 ));
             }
             if (platformId != null) {
@@ -200,12 +189,14 @@ public class PostService {
         return pageResult(postRepository.findAll(specification, pageable), user);
     }
 
+    @Transactional(readOnly = true)
     public PostListResponse listPostsByModelKeyword(AppUser user, String modelKeyword, int page, int size,
             String sort) {
         Pageable pageable = PageRequest.of(Math.max(page - 1, 0), Math.max(size, 1), resolveSort(sort));
         return pageResult(postRepository.findByModelKeyword(modelKeyword, pageable), user);
     }
 
+    @Transactional(readOnly = true)
     public PostListResponse listPostsByTrendingModel(AppUser user, AiModel relatedModel,
             boolean useExactMatching, String modelDetailContains, String modelEtcContains,
             int page, int size, String sort) {
@@ -216,6 +207,7 @@ public class PostService {
         return pageResult(postRepository.findAll(specification, pageable), user);
     }
 
+    @Transactional(readOnly = true)
     public long countPostsByTrendingModel(AiModel relatedModel,
             boolean useExactMatching, String modelDetailContains, String modelEtcContains) {
         return postRepository.count(trendingModelSpecification(
@@ -275,9 +267,10 @@ public class PostService {
         return new ToggleBookmarkResponse("success", result.message(), result.data());
     }
 
+    @Transactional(readOnly = true)
     public PostListResponse liked(AppUser user, int page, int size) {
         Page<Post> posts = interactionRepository
-                .findByUserAndLikedTrueOrderByUpdatedAtDescIdDesc(
+                .findRecentLikesByUser(
                         user,
                         PageRequest.of(Math.max(page - 1, 0), Math.max(size, 1))
                 )
@@ -285,9 +278,10 @@ public class PostService {
         return pageResult(posts, user);
     }
 
+    @Transactional(readOnly = true)
     public PostListResponse bookmarked(AppUser user, int page, int size) {
         Page<Post> posts = interactionRepository
-                .findByUserAndBookmarkedTrueOrderByUpdatedAtDescIdDesc(
+                .findRecentBookmarksByUser(
                         user,
                         PageRequest.of(Math.max(page - 1, 0), Math.max(size, 1))
                 )
@@ -295,6 +289,7 @@ public class PostService {
         return pageResult(posts, user);
     }
 
+    @Transactional(readOnly = true)
     public PostListResponse myPosts(AppUser user, int page, int size) {
         Page<Post> posts = postRepository.findByAuthor(
                 user,
@@ -325,6 +320,7 @@ public class PostService {
     }
 
     private ToggleLikeResult toggleLikeData(AppUser user, Long id) {
+        // 동시 업데이트에서 카운트 정합성을 지키기 위해 FOR UPDATE 경로를 사용한다.
         Post post = postRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다."));
         if (post.getAuthor().getId().equals(user.getId())) {
@@ -350,6 +346,7 @@ public class PostService {
     }
 
     private ToggleBookmarkResult toggleBookmarkData(AppUser user, Long id) {
+        // 동시 업데이트에서 카운트 정합성을 지키기 위해 FOR UPDATE 경로를 사용한다.
         Post post = postRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다."));
         if (post.getAuthor().getId().equals(user.getId())) {
@@ -436,6 +433,7 @@ public class PostService {
         String modelDetail = trimToNull(body.model_detail());
         String categoryEtc = trimToNull(body.category_etc());
 
+        // 플랫폼/모델/기타 입력 조합은 프론트-백엔드 호환 규칙을 그대로 강제한다.
         if (isEtc(platform.getName())) {
             if (model != null && !isEtc(model.getName())) {
                 throw new ApiException(HttpStatus.BAD_REQUEST, "플랫폼이 기타인 경우 기타 모델만 선택할 수 있습니다.");
@@ -473,7 +471,7 @@ public class PostService {
         post.setModelEtc(modelEtc);
         post.setModelDetail(modelDetail);
         post.setCategoryEtc(categoryEtc);
-        post.setTags(toTagCsv(body.tags()));
+        post.setTags(normalizeTags(body.tags()));
         post.setPrompt(body.prompt().trim());
         post.setAiResponse(body.ai_response().trim());
         post.setAdditionalOpinion(trimToNull(body.additional_opinion()));
@@ -521,9 +519,7 @@ public class PostService {
             bookmarked = interaction.map(PostInteraction::isBookmarked).orElse(false);
         }
 
-        List<String> tags = post.getTags() == null || post.getTags().isBlank()
-                ? List.of()
-                : Arrays.stream(post.getTags().split(",")).map(String::trim).filter(x -> !x.isBlank()).toList();
+        List<String> tags = normalizeTags(post.getTags());
         String avatarSrc = null;
         if (post.getAuthor().getProfileImage() != null && !post.getAuthor().getProfileImage().isBlank()) {
             avatarSrc = post.getAuthor().getProfileImage();
@@ -698,6 +694,24 @@ public class PostService {
         };
     }
 
+    private static Predicate buildTagContainsPredicate(jakarta.persistence.criteria.Root<Post> root,
+            jakarta.persistence.criteria.CriteriaQuery<?> query,
+            jakarta.persistence.criteria.CriteriaBuilder cb,
+            String like) {
+        if (query == null) {
+            return cb.disjunction();
+        }
+        var subQuery = query.subquery(Long.class);
+        var subRoot = subQuery.from(Post.class);
+        var subTag = subRoot.joinList("tags", JoinType.INNER);
+        subQuery.select(subRoot.get("id"))
+                .where(
+                        cb.equal(subRoot.get("id"), root.get("id")),
+                        cb.like(cb.lower(subTag.as(String.class)), like)
+                );
+        return cb.exists(subQuery);
+    }
+
     private Predicate buildCategoryFilterPredicate(jakarta.persistence.criteria.Root<Post> root,
             jakarta.persistence.criteria.CriteriaBuilder cb,
             Set<Long> categoryIds,
@@ -712,6 +726,7 @@ public class PostService {
                 continue;
             }
             if ("기타".equals(name)) {
+                // '기타' 필터는 category_etc 실값이 있는 데이터만 반환한다.
                 orPredicates.add(cb.and(
                         cb.equal(root.get("category").get("id"), categoryId),
                         cb.isNotNull(root.get("categoryEtc")),
@@ -741,6 +756,7 @@ public class PostService {
                 continue;
             }
             if ("기타".equals(name)) {
+                // '기타' 모델도 model_etc 실값이 있는 데이터만 매칭한다.
                 orPredicates.add(cb.and(
                         cb.equal(root.get("model").get("id"), modelId),
                         cb.isNotNull(root.get("modelEtc")),
@@ -813,15 +829,14 @@ public class PostService {
         return fallback.toLowerCase(Locale.ROOT).replace(' ', '-');
     }
 
-    private static String toTagCsv(List<String> tags) {
+    private static List<String> normalizeTags(List<String> tags) {
         if (tags == null || tags.isEmpty()) {
-            return null;
+            return List.of();
         }
-        List<String> normalized = tags.stream()
+        return tags.stream()
                 .map(PostService::trimToNull)
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-        return normalized.isEmpty() ? null : String.join(",", normalized);
+                .toList();
     }
 
     private static int platformOrder(String name) {

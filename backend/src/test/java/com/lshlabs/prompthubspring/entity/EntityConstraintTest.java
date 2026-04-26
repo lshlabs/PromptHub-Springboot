@@ -27,14 +27,14 @@ class EntityConstraintTest {
     @Autowired
     private AiModelRepository aiModelRepository;
     @Autowired
-    private TrendingCategoryRepository trendingCategoryRepository;
+    private TrendingCategoryRepository trendingCategoryRepo;
     @Autowired
-    private TrendingRankingRepository trendingRankingRepository;
+    private TrendingRankingRepository trendingRankingRepo;
 
     @BeforeEach
     void cleanUp() {
-        trendingRankingRepository.deleteAll();
-        trendingCategoryRepository.deleteAll();
+        trendingRankingRepo.deleteAll();
+        trendingCategoryRepo.deleteAll();
         aiModelRepository.deleteAll();
         platformRepository.deleteAll();
     }
@@ -71,7 +71,7 @@ class EntityConstraintTest {
         category.setIconName("brain");
         category.setOrderNum(1);
         category.setActive(true);
-        category = trendingCategoryRepository.saveAndFlush(category);
+        category = trendingCategoryRepo.saveAndFlush(category);
 
         TrendingRankingEntity first = new TrendingRankingEntity();
         first.setCategory(category);
@@ -81,7 +81,7 @@ class EntityConstraintTest {
         first.setProvider("openai");
         first.setUseExactMatching(false);
         first.setActive(true);
-        trendingRankingRepository.saveAndFlush(first);
+        trendingRankingRepo.saveAndFlush(first);
 
         TrendingRankingEntity duplicatedRank = new TrendingRankingEntity();
         duplicatedRank.setCategory(category);
@@ -92,6 +92,6 @@ class EntityConstraintTest {
         duplicatedRank.setUseExactMatching(false);
         duplicatedRank.setActive(true);
 
-        assertThrows(DataIntegrityViolationException.class, () -> trendingRankingRepository.saveAndFlush(duplicatedRank));
+        assertThrows(DataIntegrityViolationException.class, () -> trendingRankingRepo.saveAndFlush(duplicatedRank));
     }
 }

@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -65,7 +64,7 @@ class ApiSmokeTest {
                 .findFirst()
                 .orElseGet(this::createSmokeCategory);
         AiModel model = aiModelRepository
-                .findByPlatformIdAndIsActiveTrueAndIsDeprecatedFalseOrderBySortOrderAscNameAsc(platform.getId())
+                .findDisplayableByPlatformId(platform.getId())
                 .stream().findFirst().orElseGet(() -> createSmokeModel(platform));
 
         Map<String, Object> createPayload = new HashMap<>();
@@ -79,8 +78,8 @@ class ApiSmokeTest {
         createPayload.put("ai_response", "api smoke ai response 본문입니다.");
         createPayload.put("additional_opinion", "api smoke additional opinion");
 
-        MvcResult createResult = mockMvc.perform(post("/api/posts/create")
-                        .header("Authorization", "Token " + writerToken)
+        MvcResult createResult = mockMvc.perform(post("/api/posts")
+                        .header("Authorization", "Bearer " + writerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createPayload)))
                 .andExpect(status().is2xxSuccessful())
@@ -107,29 +106,29 @@ class ApiSmokeTest {
                 .andExpect(status().isOk());
 
         MvcResult likeResult = mockMvc.perform(post("/api/posts/{id}/like", postId)
-                        .header("Authorization", "Token " + viewerToken))
+                        .header("Authorization", "Bearer " + viewerToken))
                 .andExpect(status().isOk())
                 .andReturn();
         JsonNode likeJson = objectMapper.readTree(likeResult.getResponse().getContentAsString());
         assertTrue(likeJson.path("data").path("is_liked").asBoolean());
 
         MvcResult bookmarkResult = mockMvc.perform(post("/api/posts/{id}/bookmark", postId)
-                        .header("Authorization", "Token " + viewerToken))
+                        .header("Authorization", "Bearer " + viewerToken))
                 .andExpect(status().isOk())
                 .andReturn();
         JsonNode bookmarkJson = objectMapper.readTree(bookmarkResult.getResponse().getContentAsString());
         assertTrue(bookmarkJson.path("data").path("is_bookmarked").asBoolean());
 
         mockMvc.perform(get("/api/posts/liked-posts")
-                        .header("Authorization", "Token " + viewerToken))
+                        .header("Authorization", "Bearer " + viewerToken))
                 .andExpect(status().isOk());
 
         mockMvc.perform(get("/api/posts/bookmarked-posts")
-                        .header("Authorization", "Token " + viewerToken))
+                        .header("Authorization", "Bearer " + viewerToken))
                 .andExpect(status().isOk());
 
         mockMvc.perform(get("/api/stats/dashboard")
-                        .header("Authorization", "Token " + viewerToken))
+                        .header("Authorization", "Bearer " + viewerToken))
                 .andExpect(status().isOk());
     }
 

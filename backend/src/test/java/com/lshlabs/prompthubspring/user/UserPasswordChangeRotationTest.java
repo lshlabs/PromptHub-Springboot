@@ -63,7 +63,7 @@ class UserPasswordChangeRotationTest {
         String oldRefresh = registerJson.path("refresh").asText();
 
         var changeResult = mockMvc.perform(patch("/api/auth/profile/password")
-                        .header("Authorization", "Token " + oldAccess)
+                        .header("Authorization", "Bearer " + oldAccess)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -83,11 +83,11 @@ class UserPasswordChangeRotationTest {
         String newRefresh = changeJson.path("refresh").asText();
 
         mockMvc.perform(get("/api/auth/info")
-                        .header("Authorization", "Token " + oldAccess))
+                        .header("Authorization", "Bearer " + oldAccess))
                 .andExpect(status().isForbidden());
 
         mockMvc.perform(get("/api/auth/info")
-                        .header("Authorization", "Token " + newAccess))
+                        .header("Authorization", "Bearer " + newAccess))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value(email));
 

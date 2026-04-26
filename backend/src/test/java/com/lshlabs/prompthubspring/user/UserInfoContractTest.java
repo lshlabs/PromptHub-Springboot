@@ -65,7 +65,7 @@ class UserInfoContractTest {
         token = authTokenRepository.save(token);
 
         mockMvc.perform(get("/api/auth/info")
-                        .header("Authorization", "Token " + token.getToken()))
+                        .header("Authorization", "Bearer " + token.getToken()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(user.getId()))
                 .andExpect(jsonPath("$.email").value("info@example.com"))
@@ -94,7 +94,7 @@ class UserInfoContractTest {
         token = authTokenRepository.save(token);
 
         mockMvc.perform(get("/api/auth/info")
-                        .header("Authorization", "Token " + token.getToken()))
+                        .header("Authorization", "Bearer " + token.getToken()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.avatar_url").value(nullValue()))
                 .andExpect(jsonPath("$.avatar_color1").value("#CCCCCC"))
@@ -104,6 +104,26 @@ class UserInfoContractTest {
     @Test
     void userInfo_requiresAuthentication() throws Exception {
         mockMvc.perform(get("/api/auth/info"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void userInfo_rejectsLegacyTokenScheme() throws Exception {
+        AppUser user = new AppUser();
+        user.setEmail("legacy-token@example.com");
+        user.setPassword("encoded");
+        user.setUsername("legacy-token-user");
+        user = userRepository.save(user);
+
+        AuthToken token = new AuthToken();
+        token.setUser(user);
+        token.setToken(UUID.randomUUID().toString());
+        token.setTokenType(AuthTokenType.ACCESS);
+        token.setExpiresAt(Instant.now().plusSeconds(3600));
+        token = authTokenRepository.save(token);
+
+        mockMvc.perform(get("/api/auth/info")
+                        .header("Authorization", "Token " + token.getToken()))
                 .andExpect(status().isForbidden());
     }
 }

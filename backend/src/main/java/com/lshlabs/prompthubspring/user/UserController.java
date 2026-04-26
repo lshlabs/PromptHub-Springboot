@@ -16,13 +16,13 @@ public class UserController {
     private final AuthSupport authSupport;
     private final UserService userService;
 
-    @GetMapping({ "/profile", "/profile/" })
+    @GetMapping("/profile")
     public ResponseEntity<UserService.ProfileResponse> profile() {
         return ResponseEntity.ok(userService.profile(authSupport.currentUserOrThrow()));
     }
 
     @PutMapping(
-            value = { "/profile", "/profile/" },
+            value = "/profile",
             consumes = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<UserService.UpdateProfileResponse> updateProfilePut(@RequestBody UserService.ProfileUpdateRequest payload) {
@@ -33,7 +33,7 @@ public class UserController {
     }
 
     @PatchMapping(
-            value = { "/profile", "/profile/" },
+            value = "/profile",
             consumes = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<UserService.UpdateProfileResponse> updateProfilePatch(@RequestBody UserService.ProfileUpdateRequest payload) {
@@ -44,10 +44,10 @@ public class UserController {
     }
 
     @PutMapping(
-            value = { "/profile", "/profile/" },
+            value = "/profile",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE
     )
-    public ResponseEntity<UserService.UpdateProfileResponse> updateProfilePutMultipart(
+    public ResponseEntity<UserService.UpdateProfileResponse> replaceProfileWithMultipart(
             @RequestPart(value = "profile_image", required = false) MultipartFile profileImage,
             @RequestPart(value = "username", required = false) String username,
             @RequestPart(value = "bio", required = false) String bio,
@@ -75,10 +75,10 @@ public class UserController {
     }
 
     @PatchMapping(
-            value = { "/profile", "/profile/" },
+            value = "/profile",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE
     )
-    public ResponseEntity<UserService.UpdateProfileResponse> updateProfilePatchMultipart(
+    public ResponseEntity<UserService.UpdateProfileResponse> patchProfileWithMultipart(
             @RequestPart(value = "profile_image", required = false) MultipartFile profileImage,
             @RequestPart(value = "username", required = false) String username,
             @RequestPart(value = "bio", required = false) String bio,
@@ -105,7 +105,7 @@ public class UserController {
         ));
     }
 
-    @PatchMapping({ "/profile/password", "/profile/password/" })
+    @PatchMapping("/profile/password")
     public ResponseEntity<UserService.ChangePasswordResponse> changePassword(@RequestBody UserService.ChangePasswordRequest payload) {
         return ResponseEntity.ok(userService.changePassword(
                 authSupport.currentUserOrThrow(),
@@ -115,13 +115,13 @@ public class UserController {
         ));
     }
 
-    @GetMapping({ "/profile/settings", "/profile/settings/" })
+    @GetMapping("/profile/settings")
     public ResponseEntity<UserMapper.SettingsData> getSettings() {
         var user = authSupport.currentUserOrThrow();
         return ResponseEntity.ok(userService.profile(user).settings());
     }
 
-    @PatchMapping({ "/profile/settings", "/profile/settings/" })
+    @PatchMapping("/profile/settings")
     public ResponseEntity<UserMapper.SettingsData> patchSettings(@RequestBody UserService.SettingsUpdateRequest payload) {
         return ResponseEntity.ok(userService.updateSettings(
                 authSupport.currentUserOrThrow(),
@@ -129,7 +129,7 @@ public class UserController {
         ));
     }
 
-    @PutMapping({ "/profile/settings", "/profile/settings/" })
+    @PutMapping("/profile/settings")
     public ResponseEntity<UserMapper.SettingsData> putSettings(@RequestBody UserService.SettingsUpdateRequest payload) {
         return ResponseEntity.ok(userService.updateSettings(
                 authSupport.currentUserOrThrow(),
@@ -137,17 +137,17 @@ public class UserController {
         ));
     }
 
-    @PostMapping({ "/profile/avatar/regenerate", "/profile/avatar/regenerate/" })
+    @PostMapping("/profile/avatar/regenerate")
     public ResponseEntity<UserService.UpdateProfileResponse> regenerateAvatar() {
         return ResponseEntity.ok(userService.regenerateAvatar(authSupport.currentUserOrThrow()));
     }
 
-    @GetMapping({ "/profile/sessions", "/profile/sessions/" })
+    @GetMapping("/profile/sessions")
     public ResponseEntity<List<UserMapper.SessionData>> sessions() {
         return ResponseEntity.ok(userService.sessions(authSupport.currentUserOrThrow()));
     }
 
-    @DeleteMapping({ "/profile/sessions", "/profile/sessions/" })
+    @DeleteMapping("/profile/sessions")
     public ResponseEntity<UserService.SessionEndResponse> endSessions(
             @RequestParam(value = "key", required = false) String key,
             @RequestParam(value = "all", required = false, defaultValue = "false") boolean all,
@@ -159,17 +159,17 @@ public class UserController {
         return ResponseEntity.ok(userService.endSession(user, key));
     }
 
-    @DeleteMapping({ "/profile/delete", "/profile/delete/" })
+    @DeleteMapping("/profile/delete")
     public ResponseEntity<UserService.MessageResponse> deleteAccount() {
         return ResponseEntity.ok(userService.deleteAccount(authSupport.currentUserOrThrow()));
     }
 
-    @GetMapping({ "/users/{username}/summary", "/users/{username}/summary/" })
+    @GetMapping("/users/{username}/summary")
     public ResponseEntity<UserService.UserSummaryResponse> summary(@PathVariable String username) {
         return ResponseEntity.ok(userService.summary(username));
     }
 
-    @GetMapping({ "/info", "/info/" })
+    @GetMapping("/info")
     public ResponseEntity<UserService.UserInfoResponse> info() {
         return ResponseEntity.ok(userService.userInfo(authSupport.currentUserOrThrow()));
     }

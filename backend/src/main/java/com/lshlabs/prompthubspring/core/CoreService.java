@@ -20,15 +20,15 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class CoreService {
-    private static final String TRENDING_CACHE_NAME = "trending";
-    private static final String TRENDING_CATEGORY_RANKINGS_KEY = "category-rankings";
+    private static final String TRENDING_CACHE = "trending";
+    private static final String CATEGORY_RANKINGS_CACHE_KEY = "category-rankings";
 
     private final PostService postService;
     private final PlatformRepository platformRepository;
     private final CategoryRepository categoryRepository;
     private final AiModelRepository aiModelRepository;
-    private final TrendingCategoryRepository trendingCategoryRepository;
-    private final TrendingRankingRepository trendingRankingRepository;
+    private final TrendingCategoryRepository trendingCategoryRepo;
+    private final TrendingRankingRepository trendingRankingRepo;
     private final CacheManager cacheManager;
 
     public PostService.PostListResponse search(String q, String sort, int page, int pageSize,
@@ -58,9 +58,10 @@ public class CoreService {
         );
     }
 
-    public SearchResult searchForCompatibilityContract(String q, String searchType, String sort, int page, int pageSize,
+    public SearchResult searchWithLegacySchema(String q, String searchType, String sort, int page, int pageSize,
             String categories, String platforms, String models,
             Long platform, Long category, BigDecimal satisfactionMin, BigDecimal satisfactionMax) {
+        // 레거시 응답 스키마(results/pagination) 호환을 위해 별도 래퍼를 유지한다.
         PostService.PostListResponse response = search(
                 q, searchType, sort, page, pageSize, categories, platforms, models,
                 platform, category, satisfactionMin, satisfactionMax
@@ -118,9 +119,9 @@ public class CoreService {
     }
 
     public CategoryRankingsResponse categoryRankings() {
-        Cache cache = cacheManager.getCache(TRENDING_CACHE_NAME);
+        Cache cache = cacheManager.getCache(TRENDING_CACHE);
         if (cache != null) {
-            Cache.ValueWrapper wrapper = cache.get(TRENDING_CATEGORY_RANKINGS_KEY);
+            Cache.ValueWrapper wrapper = cache.get(CATEGORY_RANKINGS_CACHE_KEY);
             if (wrapper != null && wrapper.get() instanceof Map<?, ?> cached) {
                 @SuppressWarnings("unchecked")
                 Map<String, TrendingCategoryData> cachedData = (Map<String, TrendingCategoryData>) cached;
@@ -128,25 +129,26 @@ public class CoreService {
             }
         }
 
+        // 캐시 미스 시에만 DB를 조회해 트렌딩 페이로드를 구성한다.
         Map<String, TrendingCategoryData> payload = fetchCategoryRankings();
         if (cache != null) {
-            cache.put(TRENDING_CATEGORY_RANKINGS_KEY, payload);
+            cache.put(CATEGORY_RANKINGS_CACHE_KEY, payload);
         }
         return new CategoryRankingsResponse("success", payload, false);
     }
 
     public RefreshCacheResponse refreshTrendingCache() {
-        Cache cache = cacheManager.getCache(TRENDING_CACHE_NAME);
+        Cache cache = cacheManager.getCache(TRENDING_CACHE);
         if (cache != null) {
-            cache.evict(TRENDING_CATEGORY_RANKINGS_KEY);
+            cache.evict(CATEGORY_RANKINGS_CACHE_KEY);
         }
         return new RefreshCacheResponse("success", "트렌딩 캐시가 성공적으로 삭제되었습니다.");
     }
 
     private Map<String, TrendingCategoryData> fetchCategoryRankings() {
         Map<String, TrendingCategoryData> payload = new LinkedHashMap<>();
-        for (TrendingCategoryEntity category : trendingCategoryRepository.findByActiveTrueOrderByOrderNumAscNameAsc()) {
-            List<RankingData> rankings = trendingRankingRepository.findByCategoryAndActiveTrueOrderByRankAsc(category)
+        for (TrendingCategoryEntity category : trendingCategoryRepo.findVisibleCategories()) {
+            List<RankingData> rankings = trendingRankingRepo.findRankingsByCategory(category)
                     .stream()
                     .map(r -> new RankingData(r.getRank(), r.getName(), r.getScore(), r.getProvider()))
                     .toList();
@@ -163,7 +165,7 @@ public class CoreService {
 
     public TrendingModelPostsResponse trendingModelPosts(String modelName, int page, int pageSize, String sort) {
         Optional<TrendingRankingEntity> rankingOptional =
-                trendingRankingRepository.findFirstByNameAndActiveTrueOrderByRankAsc(modelName);
+                trendingRankingRepo.findTopActiveByName(modelName);
         if (rankingOptional.isEmpty()) {
             return null;
         }
@@ -179,7 +181,7 @@ public class CoreService {
 
     public TrendingModelInfoResponse trendingModelInfo(String modelName) {
         Optional<TrendingRankingEntity> rankingOptional =
-                trendingRankingRepository.findFirstByNameAndActiveTrueOrderByRankAsc(modelName);
+                trendingRankingRepo.findTopActiveByName(modelName);
         if (rankingOptional.isEmpty()) {
             return null;
         }
@@ -189,6 +191,7 @@ public class CoreService {
     private PostService.PostListData fetchTrendingPostsData(TrendingRankingEntity ranking, int page, int pageSize,
             String sort) {
         if (ranking.getRelatedModel() == null) {
+            // 트렌딩 메타는 존재하지만 연결 모델이 없으면 빈 목록을 반환한다(404 아님).
             return new PostService.PostListData(
                     List.of(),
                     new PostService.PaginationData(Math.max(page, 1), 0, 0, false, false)

@@ -38,9 +38,9 @@ class CoreTrendingCacheTest {
     @Autowired
     private CacheManager cacheManager;
     @Autowired
-    private TrendingCategoryRepository trendingCategoryRepository;
+    private TrendingCategoryRepository trendingCategoryRepo;
     @Autowired
-    private TrendingRankingRepository trendingRankingRepository;
+    private TrendingRankingRepository trendingRankingRepo;
 
     @BeforeEach
     void setUp() {
@@ -53,7 +53,7 @@ class CoreTrendingCacheTest {
         category.setIconName("TestIcon");
         category.setOrderNum(1);
         category.setActive(true);
-        category = trendingCategoryRepository.save(category);
+        category = trendingCategoryRepo.save(category);
 
         TrendingRankingEntity ranking = new TrendingRankingEntity();
         ranking.setCategory(category);
@@ -62,24 +62,24 @@ class CoreTrendingCacheTest {
         ranking.setScore("99.9");
         ranking.setProvider("TestProvider");
         ranking.setActive(true);
-        trendingRankingRepository.save(ranking);
+        trendingRankingRepo.save(ranking);
     }
 
     @AfterEach
     void tearDown() {
         clearTrendingCache();
-        trendingRankingRepository.deleteAll();
-        trendingCategoryRepository.deleteAll();
+        trendingRankingRepo.deleteAll();
+        trendingCategoryRepo.deleteAll();
     }
 
     @Test
     void categoryRankings_returnsFalseThenTrueForCacheHitState() throws Exception {
-        mockMvc.perform(get("/api/core/trending/category-rankings/"))
+        mockMvc.perform(get("/api/core/trending/category-rankings"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("success"))
                 .andExpect(jsonPath("$.from_cache").value(false));
 
-        mockMvc.perform(get("/api/core/trending/category-rankings/"))
+        mockMvc.perform(get("/api/core/trending/category-rankings"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("success"))
                 .andExpect(jsonPath("$.from_cache").value(true));
@@ -87,20 +87,20 @@ class CoreTrendingCacheTest {
 
     @Test
     void refreshCache_deletesCacheAndNextReadIsMiss() throws Exception {
-        mockMvc.perform(get("/api/core/trending/category-rankings/"))
+        mockMvc.perform(get("/api/core/trending/category-rankings"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.from_cache").value(false));
 
-        mockMvc.perform(get("/api/core/trending/category-rankings/"))
+        mockMvc.perform(get("/api/core/trending/category-rankings"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.from_cache").value(true));
 
-        mockMvc.perform(post("/api/core/trending/refresh-cache/"))
+        mockMvc.perform(post("/api/core/trending/refresh-cache"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("success"))
                 .andExpect(jsonPath("$.message").value("트렌딩 캐시가 성공적으로 삭제되었습니다."));
 
-        mockMvc.perform(get("/api/core/trending/category-rankings/"))
+        mockMvc.perform(get("/api/core/trending/category-rankings"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.from_cache").value(false));
     }

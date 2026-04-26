@@ -35,12 +35,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class ContainerSmokeTest {
 
     @Container
+    @SuppressWarnings("resource")
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
             .withDatabaseName("prompthub")
             .withUsername("prompthub")
             .withPassword("prompthub");
 
     @Container
+    @SuppressWarnings("resource")
     static final GenericContainer<?> REDIS = new GenericContainer<>("redis:7-alpine")
             .withExposedPorts(6379);
 
@@ -72,7 +74,7 @@ class ContainerSmokeTest {
         String email = "container_" + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
         String password = "P@ssword123!";
 
-        MvcResult register = mockMvc.perform(post("/api/auth/register/")
+        MvcResult register = mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -88,11 +90,11 @@ class ContainerSmokeTest {
         String token = registerJson.path("token").asText();
         assertTrue(token != null && !token.isBlank());
 
-        mockMvc.perform(get("/api/posts/"))
+        mockMvc.perform(get("/api/posts"))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(get("/api/stats/dashboard/")
-                        .header("Authorization", "Token " + token))
+        mockMvc.perform(get("/api/stats/dashboard")
+                        .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
     }
 }
