@@ -164,8 +164,7 @@ public class CoreService {
     }
 
     public TrendingModelPostsResponse trendingModelPosts(String modelName, int page, int pageSize, String sort) {
-        Optional<TrendingRankingEntity> rankingOptional =
-                trendingRankingRepo.findTopActiveByName(modelName);
+        Optional<TrendingRankingEntity> rankingOptional = findRepresentativeRanking(modelName);
         if (rankingOptional.isEmpty()) {
             return null;
         }
@@ -180,12 +179,23 @@ public class CoreService {
     }
 
     public TrendingModelInfoResponse trendingModelInfo(String modelName) {
-        Optional<TrendingRankingEntity> rankingOptional =
-                trendingRankingRepo.findTopActiveByName(modelName);
+        Optional<TrendingRankingEntity> rankingOptional = findRepresentativeRanking(modelName);
         if (rankingOptional.isEmpty()) {
             return null;
         }
         return new TrendingModelInfoResponse("success", modelInfoData(rankingOptional.get()));
+    }
+
+    private Optional<TrendingRankingEntity> findRepresentativeRanking(String modelName) {
+        List<TrendingRankingEntity> primaryRankings = trendingRankingRepo.findPrimaryRankingsByName(modelName);
+        if (!primaryRankings.isEmpty()) {
+            return Optional.of(primaryRankings.getFirst());
+        }
+        List<TrendingRankingEntity> rankings = trendingRankingRepo.findActiveByName(modelName);
+        if (!rankings.isEmpty()) {
+            return Optional.of(rankings.getFirst());
+        }
+        return Optional.empty();
     }
 
     private PostService.PostListData fetchTrendingPostsData(TrendingRankingEntity ranking, int page, int pageSize,

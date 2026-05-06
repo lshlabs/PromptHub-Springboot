@@ -107,6 +107,28 @@ class CoreTrendingModelApiTest {
         exactOff.setModelEtcContains("Sonnet-4_5");
         exactOff.setActive(true);
         trendingRankingRepo.save(exactOff);
+
+        TrendingCategoryEntity duplicateNameCategory = new TrendingCategoryEntity();
+        duplicateNameCategory.setName("중복모델카테고리");
+        duplicateNameCategory.setTitle("중복 모델 카테고리");
+        duplicateNameCategory.setSubtitle("중복 모델 카테고리 subtitle");
+        duplicateNameCategory.setIconName("TestIcon");
+        duplicateNameCategory.setOrderNum(2);
+        duplicateNameCategory.setActive(true);
+        duplicateNameCategory = trendingCategoryRepo.save(duplicateNameCategory);
+
+        TrendingRankingEntity duplicateName = new TrendingRankingEntity();
+        duplicateName.setCategory(duplicateNameCategory);
+        duplicateName.setRank(1);
+        duplicateName.setName(exactOnTrendingName);
+        duplicateName.setScore("99.0");
+        duplicateName.setProvider("Anthropic");
+        duplicateName.setRelatedModel(relatedModel);
+        duplicateName.setUseExactMatching(true);
+        duplicateName.setModelDetailContains("Sonnet-4_5");
+        duplicateName.setModelEtcContains("Sonnet-4_5");
+        duplicateName.setActive(true);
+        trendingRankingRepo.save(duplicateName);
     }
 
     @AfterEach

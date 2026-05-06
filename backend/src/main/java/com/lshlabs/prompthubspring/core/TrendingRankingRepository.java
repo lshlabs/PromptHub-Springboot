@@ -24,9 +24,9 @@ public interface TrendingRankingRepository extends JpaRepository<TrendingRanking
               from TrendingRankingEntity r
              where r.name = :name
                and r.active = true
-             order by r.rank asc
+             order by r.rank asc, r.category.orderNum asc, r.id asc
             """)
-    Optional<TrendingRankingEntity> findTopActiveByName(@Param("name") String name);
+    List<TrendingRankingEntity> findActiveByName(@Param("name") String name);
 
     @EntityGraph(attributePaths = { "category", "relatedModel", "relatedModel.platform" })
     @Query("""
@@ -35,7 +35,7 @@ public interface TrendingRankingRepository extends JpaRepository<TrendingRanking
              where r.name = :name
                and r.active = true
                and r.relatedModel is not null
-             order by r.rank asc
+             order by r.rank asc, r.category.orderNum asc, r.id asc
             """)
-    Optional<TrendingRankingEntity> findPrimaryRankingByName(@Param("name") String name);
+    List<TrendingRankingEntity> findPrimaryRankingsByName(@Param("name") String name);
 }
