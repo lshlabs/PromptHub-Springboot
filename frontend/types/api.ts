@@ -483,58 +483,58 @@ export interface FilterOptions {
 export interface ApiEndpoints {
   // Users 앱
   auth: {
-    register: '/api/auth/register/'
-    login: '/api/auth/login/'
-    logout: '/api/auth/logout/'
-    refresh: '/api/auth/token/refresh/'
-    profile: '/api/auth/profile/'
-    avatarRegenerate: '/api/auth/profile/avatar/regenerate/'
-    passwordChange: '/api/auth/profile/password/'
-    userInfo: '/api/auth/info/'
-    profileDelete: '/api/auth/profile/delete/'
-    settings: '/api/auth/profile/settings/'
-    sessions: '/api/auth/profile/sessions/'
-    google: '/api/auth/google/'
+    register: '/api/auth/register'
+    login: '/api/auth/login'
+    logout: '/api/auth/logout'
+    refresh: '/api/auth/token/refresh'
+    profile: '/api/auth/profile'
+    avatarRegenerate: '/api/auth/profile/avatar/regenerate'
+    passwordChange: '/api/auth/profile/password'
+    userInfo: '/api/auth/info'
+    profileDelete: '/api/auth/profile/delete'
+    settings: '/api/auth/profile/settings'
+    sessions: '/api/auth/profile/sessions'
+    google: '/api/auth/google'
     userSummary: (username: string) => string
   }
 
   // Posts 앱
   posts: {
-    list: '/api/posts/'
-    create: '/api/posts/'
+    list: '/api/posts'
+    create: '/api/posts'
     detail: (id: number) => string
     update: (id: number) => string
     delete: (id: number) => string
     like: (id: number) => string
     bookmark: (id: number) => string
-    liked: '/api/posts/liked-posts/'
-    bookmarked: '/api/posts/bookmarked-posts/'
-    my: '/api/posts/my-posts/'
-    platforms: '/api/posts/platforms/'
-    models: '/api/posts/models/'
-    modelsSuggest: '/api/posts/models/suggest/'
+    liked: '/api/posts/liked-posts'
+    bookmarked: '/api/posts/bookmarked-posts'
+    my: '/api/posts/my-posts'
+    platforms: '/api/posts/platforms'
+    models: '/api/posts/models'
+    modelsSuggest: '/api/posts/models/suggest'
     platformModels: (platformId: number) => string
-    categories: '/api/posts/categories/'
-    tags: '/api/posts/tags/'
+    categories: '/api/posts/categories'
+    tags: '/api/posts/tags'
   }
 
   // Core 앱
   core: {
-    search: '/api/core/search/'
-    sortOptions: '/api/core/sort-options/'
-    filterOptions: '/api/core/filter-options/'
+    search: '/api/core/search'
+    sortOptions: '/api/core/sort-options'
+    filterOptions: '/api/core/filter-options'
     trending: {
-      categoryRankings: '/api/core/trending/category-rankings/'
-      refreshCache: '/api/core/trending/refresh-cache/'
-      modelPosts: '/api/core/trending/model/'
-      modelInfo: '/api/core/trending/model/'
+      categoryRankings: '/api/core/trending/category-rankings'
+      refreshCache: '/api/core/trending/refresh-cache'
+      modelPosts: '/api/core/trending/model'
+      modelInfo: '/api/core/trending/model'
     }
   }
 
   // Stats 앱
   stats: {
-    dashboard: '/api/stats/dashboard/'
-    user: '/api/stats/user/'
+    dashboard: '/api/stats/dashboard'
+    user: '/api/stats/user'
   }
 }
 
@@ -680,52 +680,52 @@ export const API_BASE_URL = resolveApiBaseUrl()
 
 export const API_ENDPOINTS: ApiEndpoints = {
   auth: {
-    register: '/api/auth/register/',
-    login: '/api/auth/login/',
-    logout: '/api/auth/logout/',
-    refresh: '/api/auth/token/refresh/',
-    profile: '/api/auth/profile/',
-    avatarRegenerate: '/api/auth/profile/avatar/regenerate/',
-    passwordChange: '/api/auth/profile/password/',
-    userInfo: '/api/auth/info/',
-    profileDelete: '/api/auth/profile/delete/',
-    settings: '/api/auth/profile/settings/',
-    sessions: '/api/auth/profile/sessions/',
-    google: '/api/auth/google/',
-    userSummary: (username: string) => `/api/auth/users/${encodeURIComponent(username)}/summary/`,
+    register: '/api/auth/register',
+    login: '/api/auth/login',
+    logout: '/api/auth/logout',
+    refresh: '/api/auth/token/refresh',
+    profile: '/api/auth/profile',
+    avatarRegenerate: '/api/auth/profile/avatar/regenerate',
+    passwordChange: '/api/auth/profile/password',
+    userInfo: '/api/auth/info',
+    profileDelete: '/api/auth/profile/delete',
+    settings: '/api/auth/profile/settings',
+    sessions: '/api/auth/profile/sessions',
+    google: '/api/auth/google',
+    userSummary: (username: string) => `/api/auth/users/${encodeURIComponent(username)}/summary`,
   },
   posts: {
-    list: '/api/posts/',
-    create: '/api/posts/',
-    detail: (id: number) => `/api/posts/${id}/`,
-    update: (id: number) => `/api/posts/${id}/`,
-    delete: (id: number) => `/api/posts/${id}/`,
-    like: (id: number) => `/api/posts/${id}/like/`,
-    bookmark: (id: number) => `/api/posts/${id}/bookmark/`,
-    liked: '/api/posts/liked-posts/',
-    bookmarked: '/api/posts/bookmarked-posts/',
-    my: '/api/posts/my-posts/',
-    platforms: '/api/posts/platforms/',
-    models: '/api/posts/models/',
-    modelsSuggest: '/api/posts/models/suggest/',
-    platformModels: (platformId: number) => `/api/posts/platforms/${platformId}/models/`,
-    categories: '/api/posts/categories/',
-    tags: '/api/posts/tags/',
+    list: '/api/posts',
+    create: '/api/posts',
+    detail: (id: number) => `/api/posts/${id}`,
+    update: (id: number) => `/api/posts/${id}`,
+    delete: (id: number) => `/api/posts/${id}`,
+    like: (id: number) => `/api/posts/${id}/like`,
+    bookmark: (id: number) => `/api/posts/${id}/bookmark`,
+    liked: '/api/posts/liked-posts',
+    bookmarked: '/api/posts/bookmarked-posts',
+    my: '/api/posts/my-posts',
+    platforms: '/api/posts/platforms',
+    models: '/api/posts/models',
+    modelsSuggest: '/api/posts/models/suggest',
+    platformModels: (platformId: number) => `/api/posts/platforms/${platformId}/models`,
+    categories: '/api/posts/categories',
+    tags: '/api/posts/tags',
   },
   core: {
-    search: '/api/core/search/',
-    sortOptions: '/api/core/sort-options/',
-    filterOptions: '/api/core/filter-options/',
+    search: '/api/core/search',
+    sortOptions: '/api/core/sort-options',
+    filterOptions: '/api/core/filter-options',
     trending: {
-      categoryRankings: '/api/core/trending/category-rankings/',
-      refreshCache: '/api/core/trending/refresh-cache/',
-      modelPosts: '/api/core/trending/model/',
-      modelInfo: '/api/core/trending/model/',
+      categoryRankings: '/api/core/trending/category-rankings',
+      refreshCache: '/api/core/trending/refresh-cache',
+      modelPosts: '/api/core/trending/model',
+      modelInfo: '/api/core/trending/model',
     },
   },
   stats: {
-    dashboard: '/api/stats/dashboard/',
-    user: '/api/stats/user/',
+    dashboard: '/api/stats/dashboard',
+    user: '/api/stats/user',
   },
 }
 

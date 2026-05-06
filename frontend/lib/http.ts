@@ -14,6 +14,7 @@ export const resolveApiBaseUrl = (): string => {
   const publicBase = process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || ''
   const internalBase = process.env.NEXT_INTERNAL_API_BASE_URL?.trim() || ''
 
+  // 서버 컴포넌트/라우트에서는 컨테이너 내부 주소를 써야 배포 환경에서 자기 자신을 다시 밖으로 돌지 않는다.
   const base = typeof window === 'undefined' ? internalBase || publicBase : publicBase
 
   if (!base) {
@@ -27,6 +28,7 @@ export const buildApiUrl = (path: string): string => {
   if (/^https?:\/\//i.test(path)) {
     return path
   }
+  // 백엔드는 후행 슬래시 없는 canonical URL을 기준으로 맞춰 둬서 여기서는 앞쪽 슬래시만 보정한다.
   const normalizedPath = path.startsWith('/') ? path : `/${path}`
   return `${resolveApiBaseUrl()}${normalizedPath}`
 }
@@ -37,6 +39,7 @@ const parseResponsePayload = async (response: Response): Promise<unknown> => {
   try {
     return JSON.parse(raw)
   } catch {
+    // 오류 응답이 HTML/텍스트로 와도 원문 메시지를 잃지 않게 그대로 돌려준다.
     return raw
   }
 }

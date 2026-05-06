@@ -42,17 +42,17 @@ export function useAuth(): UseAuthReturn {
   const [initAttempted, setInitAttempted] = useState(false)
   const [authError, setAuthError] = useState<string | null>(null)
 
-  // NextAuth 세션 확인 (세션 동기화 상태 파악)
+  // Google 로그인은 NextAuth가 먼저 들고 있어서, 앱 토큰 복원 순서를 맞추려고 같이 본다.
   const { data: session, status: sessionStatus } = useSession()
 
   const isAuthenticated = !!token && !!user
 
   // 초기화 시 토큰과 사용자 정보 확인
   useEffect(() => {
-    // 이미 초기화를 시도했으면 중복 실행 방지
+    // 초기화가 여러 번 돌면 프로필 호출과 토큰 정리가 서로 덮어쓸 수 있어서 한 번만 시도한다.
     if (initAttempted) return
 
-    // NextAuth 세션이 로딩 중이면 대기
+    // NextAuth가 아직 판정 중일 때 로컬 토큰을 지우면 OAuth 복귀 직후 로그아웃처럼 보인다.
     if (sessionStatus === 'loading') {
       logger.debug('⏳ NextAuth 세션 로딩 중, initAuth 대기...')
       return
@@ -66,13 +66,13 @@ export function useAuth(): UseAuthReturn {
       return
     }
 
-    // NextAuth 세션이 있고 백엔드 데이터가 있으면 세션 동기화를 우선하되, 사용자 데이터는 여전히 로드
+    // 세션 훅이 토큰을 곧 심어도, 여기서 프로필을 다시 읽어 최신 사용자 정보는 맞춰 둔다.
     if (sessionStatus === 'authenticated' && session?.backendToken && session?.backendUser) {
       logger.debug('🔄 NextAuth 세션 존재, 세션 동기화 우선 - 사용자 데이터 로드 진행')
       // initAuth는 계속 진행하되, 토큰은 이미 설정된 것으로 간주
     }
 
-    // localStorage에 토큰이 있고 아직 상태에 설정되지 않은 경우 우선 설정
+    // 새로고침 후 첫 렌더에서는 localStorage 토큰으로 헤더/보호 화면 깜빡임을 줄인다.
     const storedToken = getAccessToken()
     if (storedToken && !token) {
       logger.debug('🔄 localStorage 토큰 발견, 상태 복원 시도')
@@ -93,7 +93,7 @@ export function useAuth(): UseAuthReturn {
         logger.debug('🔍 initAuth - 토큰 확인:', tokenToUse ? '토큰 존재' : '토큰 없음')
 
         if (tokenToUse) {
-          // 이미 사용자 정보가 있으면 getProfile 호출 스킵
+          // 이미 화면 상태가 채워졌으면 불필요한 프로필 호출을 줄인다.
           if (user) {
             logger.debug('🔄 initAuth - 토큰 설정됨, 사용자 정보는 이미 존재함')
           } else {
@@ -113,7 +113,7 @@ export function useAuth(): UseAuthReturn {
         logger.error('❌ 인증 초기화 오류:', error)
         setAuthError(error?.message || '인증 초기화 중 오류가 발생했습니다.')
 
-        // API 오류가 401 (Unauthorized)인 경우 NextAuth 세션도 정리
+        // 백엔드가 401을 주면 NextAuth 세션만 남겨도 다시 로그인된 것처럼 보여서 같이 정리한다.
         if (isUnauthorizedAuthError(error)) {
           logger.debug('🧹 401 오류로 인한 전체 인증 상태 초기화')
           try {
@@ -137,7 +137,7 @@ export function useAuth(): UseAuthReturn {
     initAuth()
   }, [initAttempted, sessionStatus, session?.backendToken, session?.backendUser])
 
-  // 인증 만료 이벤트 리스너 추가
+  // API 인터셉터에서 만료를 알리면 모든 화면의 인증 상태를 한 번에 비운다.
   useEffect(() => {
     const handleAuthExpired = () => {
       logger.debug('🔓 인증 만료 이벤트 수신, 상태 초기화')
@@ -167,11 +167,11 @@ export function useAuth(): UseAuthReturn {
           user: response.user,
         })
 
-        // 토큰은 authApi.login에서 자동으로 저장됨
+        // 토큰 저장은 API 레이어가 하고, 훅은 화면 상태만 바로 맞춘다.
         setToken(response.token)
         setUser(response.user)
 
-        // 상태 업데이트가 완료될 때까지 잠시 대기
+        // 로그인 직후 라우팅에서 이전 상태를 읽지 않도록 아주 짧게 기다린다.
         await new Promise(resolve => setTimeout(resolve, 100))
 
         logger.debug('✅ useAuth login 성공 - 토큰과 사용자 정보 설정 완료')

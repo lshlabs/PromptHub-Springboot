@@ -91,7 +91,7 @@ export function CustomBadge({
   removable = false,
   onRemove,
 }: CustomBadgeProps) {
-  // responsive size일 때 PostCard 패턴 적용
+  // 반응형 크기일 때 PostCard와 같은 패턴을 쓴다.
   const getResponsiveSizeClass = () => {
     if (size !== 'responsive') return sizeClasses[size]
     return 'px-1.5 py-0.5 text-xs font-medium sm:px-2 sm:py-1'

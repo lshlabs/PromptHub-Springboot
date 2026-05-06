@@ -84,7 +84,7 @@ export function SearchBar({
         parsed.filter(item => item && typeof item.query === 'string' && item.query.trim()),
       )
     } catch {
-      // noop: corrupted localStorage should not break search form
+      // 저장된 검색어가 깨져도 검색창 자체는 계속 쓸 수 있어야 한다.
     }
   }, [])
 
@@ -105,7 +105,7 @@ export function SearchBar({
     try {
       window.localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(next))
     } catch {
-      // noop
+      // 최근 검색어 저장 실패는 검색 실행을 막을 정도의 오류는 아니다.
     }
   }
 

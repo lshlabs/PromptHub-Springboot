@@ -43,7 +43,7 @@ class PostInteractionOrderingTest {
         Post newerPost = savePost(author, platform, category, "newer");
         Post olderPost = savePost(author, platform, category, "older");
 
-        // Insert order intentionally opposite to updated_at order.
+        // 정렬 기준이 updated_at인지 보려고 일부러 저장 순서와 수정 시간을 반대로 둔다.
         PostInteraction older = saveInteraction(currentUser, olderPost, true, false, Instant.parse("2026-02-01T00:00:00Z"));
         PostInteraction newer = saveInteraction(currentUser, newerPost, true, false, Instant.parse("2026-03-01T00:00:00Z"));
 

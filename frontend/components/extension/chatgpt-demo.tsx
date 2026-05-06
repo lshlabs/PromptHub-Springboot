@@ -110,7 +110,7 @@ export default function ChatGPTDemo() {
   }, [messages])
 
   useEffect(() => {
-    // Scroll to header when component mounts (when tab is activated)
+    // 탭 전환 직후에는 데모 시작 위치가 화면 위로 밀려서 헤더 근처로 다시 맞춘다.
     const timer = setTimeout(() => {
       if (headerRef.current) {
         const headerOffset = 90 // 헤더 높이 (px)
@@ -122,12 +122,12 @@ export default function ChatGPTDemo() {
           behavior: 'smooth',
         })
       }
-    }, 100) // Small delay to ensure tab transition is complete
+    }, 100) // 탭 전환 애니메이션이 끝난 뒤 위치를 계산해야 스크롤이 덜 튄다.
 
     return () => clearTimeout(timer)
   }, [])
 
-  // Textarea 높이 자동 조정 함수
+  // 입력 내용이 길어질 때 textarea 높이를 자연스럽게 늘린다.
   const adjustTextareaHeight = (textarea: HTMLTextAreaElement) => {
     textarea.style.height = 'auto'
     const scrollHeight = textarea.scrollHeight

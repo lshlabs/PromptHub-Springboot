@@ -30,6 +30,7 @@ public class CloudinaryService {
                             "folder", cloudinaryProperties.getProfileFolder(),
                             "resource_type", "image",
                             "overwrite", true,
+                            // 같은 파일명을 올려도 이전 프로필 이미지 URL을 덮어쓰지 않게 Cloudinary가 이름을 붙이게 둔다.
                             "unique_filename", true
                     )
             );

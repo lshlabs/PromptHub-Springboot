@@ -1,6 +1,6 @@
 'use client'
 
-// Inspired by react-hot-toast library
+// react-hot-toast 구조를 참고했지만, 이 프로젝트에서는 shadcn toast 상태만 작게 관리한다.
 import * as React from 'react'
 
 import type { ToastActionElement, ToastProps } from '@/components/ui/toast'
@@ -88,8 +88,7 @@ export const reducer = (state: State, action: Action): State => {
     case 'DISMISS_TOAST': {
       const { toastId } = action
 
-      // ! Side effects ! - This could be extracted into a dismissToast() action,
-      // but I'll keep it here for simplicity
+      // 닫힘 애니메이션이 끝난 뒤 제거해야 해서 dismiss 단계에서 타이머를 같이 건다.
       if (toastId) {
         addToRemoveQueue(toastId)
       } else {

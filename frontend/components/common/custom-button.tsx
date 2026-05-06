@@ -98,7 +98,7 @@ export function CustomButton({
 }: CustomButtonProps) {
   const screenSize = useScreenSize()
 
-  // responsive size일 때 스크린 사이즈에 따라 동적으로 클래스 결정
+  // 반응형 크기일 때 화면 너비에 맞춰 클래스를 고른다.
   const getResponsiveSizeClass = () => {
     if (size !== 'responsive') return sizeClasses[size]
 

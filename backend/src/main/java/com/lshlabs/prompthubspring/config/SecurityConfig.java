@@ -32,8 +32,10 @@ public class SecurityConfig {
                         auth -> {
                             auth.requestMatchers("/api/core/health").permitAll();
                             if (localOrTest) {
+                                // H2 콘솔은 개발/테스트 확인용이라 운영 프로필에서는 열지 않는다.
                                 auth.requestMatchers("/h2-console/**").permitAll();
                             }
+                            // 레거시 프론트가 비로그인 목록/검색을 기대해서 조회 API는 공개로 유지한다.
                             auth.requestMatchers(HttpMethod.GET, "/api/posts/**", "/api/core/**").permitAll();
                             auth.requestMatchers(HttpMethod.GET,
                                             "/api/stats/dashboard",
@@ -51,6 +53,7 @@ public class SecurityConfig {
                 .addFilterBefore(tokenAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         if (localOrTest) {
+            // H2 콘솔이 iframe으로 떠서 로컬/테스트에서만 frame 옵션을 푼다.
             http.headers(headers -> headers.frameOptions(frame -> frame.disable()));
         }
         return http.build();

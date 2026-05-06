@@ -20,7 +20,7 @@ export default function TrendingHero() {
           벤치마크가 있을 수 있습니다
         </p>
 
-        {/* Data Source */}
+        {/* 데이터 출처 */}
         <div className="text-sm text-gray-500">
           데이터 출처:{' '}
           <a

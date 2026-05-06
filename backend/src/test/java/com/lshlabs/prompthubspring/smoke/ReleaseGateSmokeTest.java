@@ -55,7 +55,7 @@ class ReleaseGateSmokeTest {
         mockMvc.perform(get("/api/core/trending/category-rankings"))
                 .andExpect(status().isOk());
 
-        // Legacy source-of-truth: dashboard summary endpoints are publicly accessible.
+        // 레거시 기준에서 대시보드 요약 API는 로그인 없이 접근 가능해야 한다.
         mockMvc.perform(get("/api/stats/dashboard"))
                 .andExpect(status().isOk());
 

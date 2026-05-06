@@ -18,7 +18,7 @@ export default function SettingsPage() {
   const router = useRouter()
   const { user, logout } = useAuthContext()
 
-  // State for all settings fields
+  // 저장 실패 시 바로 되돌릴 수 있게 각 설정값은 화면 상태로 먼저 들고 있는다.
   const accountEmail = user?.email ?? ''
   const [accountNotificationsEnabled, setAccountNotificationsEnabled] = useState(true)
   const [accountInAppNotificationsEnabled, setAccountInAppNotificationsEnabled] = useState(true)
@@ -132,7 +132,7 @@ export default function SettingsPage() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-3xl space-y-6">
-          {/* Hero */}
+          {/* 상단 영역 */}
           <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white">
             <div className="pointer-events-none absolute inset-0 opacity-50 [background:radial-gradient(1200px_600px_at_100%_-10%,rgba(59,130,246,0.15),transparent_60%),radial-gradient(1200px_600px_at_0%_-10%,rgba(168,85,247,0.15),transparent_60%)]" />
             <div className="relative flex items-center gap-4 p-6">
@@ -163,7 +163,7 @@ export default function SettingsPage() {
             </div>
           ) : null}
 
-          {/* Settings Tabs */}
+          {/* 설정 탭 */}
           <Card className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
             <Tabs value={activeTab} onValueChange={v => setActiveTab(v as any)}>
               <CardHeader className="p-0">

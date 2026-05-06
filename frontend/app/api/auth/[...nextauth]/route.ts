@@ -24,6 +24,7 @@ const getGoogleCredentials = () => {
 
 const resolveBackendAuthErrorCode = (error: unknown): string => {
   if (error instanceof HttpRequestError) {
+    // NextAuth는 문자열 에러 코드만 안정적으로 넘겨서, 백엔드 상태값을 화면용 코드로 줄여 둔다.
     if (error.status === 400) return 'BACKEND_AUTH_BAD_REQUEST'
     if (error.status === 401 || error.status === 403) return 'BACKEND_AUTH_UNAUTHORIZED'
     if (error.status >= 500) return 'BACKEND_AUTH_SERVER_ERROR'
@@ -57,7 +58,7 @@ const handler = NextAuth({
           const backendToken = (account as typeof account & { backendToken?: string }).backendToken
           const backendUser = (account as typeof account & { backendUser?: unknown }).backendUser
           if (!backendToken || !backendUser) {
-            // signIn 콜백에서 백엔드 교환이 성공해야만 여기까지 도달해야 함
+            // signIn에서 백엔드 교환이 끝난 뒤에만 세션을 만들 수 있게 한 번 더 막는다.
             throw new Error('BACKEND_AUTH_TOKEN_MISSING')
           }
 
@@ -92,7 +93,7 @@ const handler = NextAuth({
       }
 
       try {
-        const backendAuth = await postJson<BackendGoogleAuthResponse>('/api/auth/google/', {
+        const backendAuth = await postJson<BackendGoogleAuthResponse>('/api/auth/google', {
           id_token: account.id_token,
         })
 

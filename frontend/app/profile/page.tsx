@@ -546,7 +546,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-gray-50 p-6 text-gray-900 md:p-10">
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 lg:grid-cols-3">
-        {/* Left Column */}
+        {/* 왼쪽 영역 */}
         <div className="space-y-8 lg:col-span-1">
           {/* 프로필 완성도 표시 */}
           {profileCompleteness && <ProfileCompleteness completeness={profileCompleteness} />}
@@ -563,7 +563,7 @@ export default function ProfilePage() {
           />
         </div>
 
-        {/* Right Column */}
+        {/* 오른쪽 영역 */}
         <div className="space-y-8 lg:col-span-2">
           <ProfileStatsSection
             stats={getStats()}

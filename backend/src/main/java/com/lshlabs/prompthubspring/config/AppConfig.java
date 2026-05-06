@@ -49,6 +49,7 @@ public class AppConfig {
             if (value == null) {
                 continue;
             }
+            // 환경변수에서 쉼표 뒤 공백이 섞여도 CORS origin 비교가 실패하지 않게 다듬는다.
             String trimmed = value.trim();
             if (!trimmed.isEmpty()) {
                 normalized.add(trimmed);
@@ -59,6 +60,7 @@ public class AppConfig {
 
     @Bean
     public CacheManager cacheManager() {
+        // 통계는 자주 바뀔 수 있어 짧게 만료시키고, 트렌딩은 수동 갱신 흐름에 맞춰 만료 시간을 두지 않는다.
         CaffeineCache statsCache = new CaffeineCache("stats",
                 Caffeine.newBuilder().maximumSize(10_000).expireAfterWrite(Duration.ofSeconds(60)).build());
 

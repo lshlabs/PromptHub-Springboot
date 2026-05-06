@@ -178,6 +178,7 @@ public class UserController {
         if (raw == null) {
             return null;
         }
+        // multipart form에서는 체크박스 값이 브라우저/클라이언트마다 다르게 들어와서 흔한 표현을 같이 받는다.
         return "true".equalsIgnoreCase(raw) || "1".equals(raw) || "yes".equalsIgnoreCase(raw) || "on".equalsIgnoreCase(raw);
     }
 }

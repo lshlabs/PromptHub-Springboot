@@ -59,18 +59,18 @@ export function CreatePostDialog({
 
   const [currentStep, setCurrentStep] = useState(1)
 
-  // Step 1: 제목 + 프롬프트 (필수)
+  // 1단계: 제목 + 프롬프트 (필수)
   const [title, setTitle] = useState('')
   const [prompt, setPrompt] = useState('')
 
-  // Step 2: AI 응답 (필수)
+  // 2단계: AI 응답 (필수)
   const [aiResponse, setAiResponse] = useState('')
 
-  // Step 3: 평점 + 추가의견 (평점 필수, 추가의견 선택)
+  // 3단계: 평점 + 추가의견 (평점 필수, 추가의견 선택)
   const [rating, setRating] = useState(0)
   const [additionalOpinion, setAdditionalOpinion] = useState('')
 
-  // Step 4: 모델 (필수)
+  // 4단계: 모델 (필수)
   const [selectedModel, setSelectedModel] = useState('')
   const [customModel, setCustomModel] = useState('')
   const [showCustomModelInput, setShowCustomModelInput] = useState(false)
@@ -78,7 +78,7 @@ export function CreatePostDialog({
   const [modelDetail, setModelDetail] = useState('')
   const [customPlatformId, setCustomPlatformId] = useState<number | null>(null)
 
-  // Step 5: 카테고리 + 태그 (카테고리 필수)
+  // 5단계: 카테고리 + 태그 (카테고리 필수)
   const [selectedCategory, setSelectedCategory] = useState('')
   const [customCategory, setCustomCategory] = useState('')
   const [showCustomCategoryInput, setShowCustomCategoryInput] = useState(false)

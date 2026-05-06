@@ -201,6 +201,7 @@ public class AuthService {
             try {
                 return userRepository.save(created);
             } catch (DataIntegrityViolationException exception) {
+                // 같은 이름 가입이 동시에 들어올 수 있어서 DB 제약에 걸린 경우만 다음 후보를 다시 시도한다.
                 if (userRepository.existsByUsername(candidate)) {
                     continue;
                 }

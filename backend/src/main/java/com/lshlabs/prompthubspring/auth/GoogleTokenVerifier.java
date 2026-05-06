@@ -81,6 +81,7 @@ public class GoogleTokenVerifier {
             log.debug("Google token verification failed: aud mismatch.");
             throw new ApiException(HttpStatus.BAD_REQUEST, "Google 토큰 aud가 유효하지 않습니다.");
         }
+        // Google 토큰은 iss가 두 형태로 올 수 있어서 공식 값 두 개만 허용한다.
         if (!Objects.equals("https://accounts.google.com", iss) && !Objects.equals("accounts.google.com", iss)) {
             log.debug("Google token verification failed: iss mismatch.");
             throw new ApiException(HttpStatus.BAD_REQUEST, "Google 토큰 iss가 유효하지 않습니다.");
@@ -97,6 +98,7 @@ public class GoogleTokenVerifier {
         if (value instanceof Boolean b) {
             return b;
         }
+        // 테스트 더블이나 일부 파서가 문자열/숫자로 넘겨도 email_verified 의미는 유지한다.
         String normalized = String.valueOf(value).trim();
         return "true".equalsIgnoreCase(normalized) || "1".equals(normalized);
     }
